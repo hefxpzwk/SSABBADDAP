@@ -6,7 +6,7 @@
     <title>말풍선 - 화면</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Gaegu:wght@400;700&family=Hi+Melody&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -23,7 +23,6 @@
             cursor: crosshair;
         }
 
-        /* 그리드 패턴 */
         body::before {
             content: '';
             position: fixed;
@@ -38,13 +37,15 @@
             z-index: 0;
         }
 
-        #canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+        /* 전체화면 모드에서 컨트롤 숨기기 */
+        body.fullscreen-mode .controls {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        body.fullscreen-mode:hover .controls {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .bubble {
@@ -77,6 +78,24 @@
         .bubble:active {
             cursor: grabbing;
         }
+
+        .bubble .emoji {
+            margin-right: 6px;
+        }
+
+        .bubble .nickname-tag {
+            display: block;
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 4px;
+            font-family: 'Jua', sans-serif;
+        }
+
+        /* 글꼴 스타일 */
+        .bubble.font-normal { font-family: 'Jua', sans-serif; }
+        .bubble.font-handwriting { font-family: 'Gaegu', cursive; font-size: 1.6rem; }
+        .bubble.font-cute { font-family: 'Hi Melody', cursive; font-size: 1.5rem; }
+        .bubble.font-pen { font-family: 'Nanum Pen Script', cursive; font-size: 1.7rem; }
 
         /* 빈 상태 */
         .empty {
@@ -118,6 +137,7 @@
             align-items: center;
             z-index: 100;
             background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            transition: opacity 0.3s ease;
         }
 
         .controls a,
@@ -137,6 +157,12 @@
         .controls button:hover {
             color: #fff;
             border-color: #ff3e3e;
+        }
+
+        .controls-left,
+        .controls-right {
+            display: flex;
+            gap: 10px;
         }
 
         .counter {
@@ -170,6 +196,37 @@
             opacity: 1;
         }
 
+        /* 우클릭 메뉴 */
+        .context-menu {
+            position: fixed;
+            background: #222;
+            border: 2px solid #ff3e3e;
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu button {
+            display: block;
+            width: 100%;
+            padding: 12px 24px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1rem;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s ease;
+        }
+
+        .context-menu button:hover {
+            background: #ff3e3e;
+        }
+
         /* 모달 오버레이 */
         .modal-overlay {
             position: fixed;
@@ -193,7 +250,6 @@
             visibility: visible;
         }
 
-        /* 모달 박스 */
         .modal-box {
             background: #1a1a1a;
             border: 4px solid #ff3e3e;
@@ -213,6 +269,21 @@
             transform: scale(1) translateY(0);
         }
 
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .modal-nickname {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
+            color: #888;
+        }
+
         .modal-content {
             font-family: 'Jua', sans-serif;
             font-size: 1.8rem;
@@ -223,11 +294,10 @@
             white-space: pre-wrap;
             overflow-x: hidden;
             overflow-y: auto;
-            max-height: calc(80vh - 160px);
+            max-height: calc(80vh - 200px);
             padding-right: 15px;
         }
 
-        /* 스크롤바 스타일 */
         .modal-content::-webkit-scrollbar {
             width: 8px;
         }
@@ -275,10 +345,40 @@
             margin-top: 20px;
             text-align: right;
         }
+
+        /* 전체화면 안내 */
+        .fullscreen-hint {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #666;
+            padding: 10px 15px;
+            font-family: 'Jua', sans-serif;
+            font-size: 0.85rem;
+            z-index: 50;
+            border: 1px solid #333;
+            transition: opacity 0.3s ease;
+        }
+
+        body.fullscreen-mode .fullscreen-hint {
+            opacity: 0;
+        }
+
+        .fullscreen-hint kbd {
+            background: #333;
+            padding: 2px 8px;
+            border-radius: 3px;
+            color: #ff3e3e;
+        }
     </style>
 </head>
 <body>
     <div class="alert" id="alert">새 메시지!</div>
+    
+    <div class="fullscreen-hint">
+        <kbd>F11</kbd> 전체화면 모드
+    </div>
     
     <div class="empty" id="empty">
         <h2>텅 비었음</h2>
@@ -287,19 +387,32 @@
     
     <div id="bubbleContainer"></div>
     
+    <!-- 우클릭 메뉴 -->
+    <div class="context-menu" id="contextMenu">
+        <button id="deleteBtn">🗑️ 삭제하기</button>
+    </div>
+    
     <!-- 모달 -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
             <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-header">
+                <span class="modal-nickname" id="modalNickname"></span>
+            </div>
             <div class="modal-content" id="modalContent"></div>
             <div class="modal-hint">아무 곳이나 클릭해서 닫기</div>
         </div>
     </div>
     
     <div class="controls">
-        <a href="index.html" target="_blank">← 입력하기</a>
+        <div class="controls-left">
+            <a href="index.html" target="_blank">← 입력하기</a>
+            <button id="fullscreenBtn">⛶ 전체화면</button>
+        </div>
         <div class="counter"><span id="count">0</span>개</div>
-        <button id="clearBtn">전체 삭제</button>
+        <div class="controls-right">
+            <button id="clearBtn">전체 삭제</button>
+        </div>
     </div>
 
     <script>
@@ -309,25 +422,37 @@
         const countEl = document.getElementById('count');
         const alertEl = document.getElementById('alert');
         const clearBtn = document.getElementById('clearBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
         const modalOverlay = document.getElementById('modalOverlay');
         const modalContent = document.getElementById('modalContent');
+        const modalNickname = document.getElementById('modalNickname');
         const modalClose = document.getElementById('modalClose');
+        const contextMenu = document.getElementById('contextMenu');
+        const deleteBtn = document.getElementById('deleteBtn');
 
-        // 물리 엔진용 버블 배열
         let bubbles = [];
-        const FRICTION = 0.995; // 마찰 줄여서 더 오래 움직이게
+        const FRICTION = 0.995;
         const BOUNCE = 0.7;
         const PUSH_FORCE = 2;
-        const MAX_DISPLAY_LENGTH = 20; // 표시할 최대 글자 수
-        const MIN_SPEED = 0.3; // 최소 속도
-        const WANDER_FORCE = 0.05; // 랜덤 움직임 힘
+        const MAX_DISPLAY_LENGTH = 20;
+        const MIN_SPEED = 0.3;
+        const WANDER_FORCE = 0.05;
         
-        // 바람 효과 (전체적인 흐름)
         let windX = 0;
         let windY = 0;
         let windChangeTimer = 0;
 
-        // 텍스트 자르기
+        // 우클릭 메뉴용
+        let contextTargetBubble = null;
+
+        // 글꼴 매핑
+        const fontMap = {
+            'normal': "'Jua', sans-serif",
+            'handwriting': "'Gaegu', cursive",
+            'cute': "'Hi Melody', cursive",
+            'pen': "'Nanum Pen Script', cursive"
+        };
+
         function truncateText(text) {
             if (text.length <= MAX_DISPLAY_LENGTH) {
                 return { display: text, truncated: false };
@@ -339,39 +464,53 @@
             constructor(data) {
                 this.id = data.id;
                 this.text = data.text;
-                this.color = data.color;
+                this.color = data.color || '#ff3e3e';
+                this.emoji = data.emoji || '';
+                this.font = data.font || 'normal';
+                this.nickname = data.nickname || '익명';
                 
                 const { display, truncated } = truncateText(data.text);
                 
-                // DOM 요소 생성
                 this.el = document.createElement('div');
-                this.el.className = 'bubble' + (truncated ? ' has-more' : '');
-                this.el.textContent = display;
-                this.el.style.color = data.color;
-                this.el.style.borderColor = data.color;
+                this.el.className = `bubble font-${this.font}` + (truncated ? ' has-more' : '');
+                this.el.style.color = this.color;
+                this.el.style.borderColor = this.color;
+                
+                // 내용 구성
+                let content = '';
+                if (this.emoji) {
+                    content += `<span class="emoji">${this.emoji}</span>`;
+                }
+                content += `<span class="text">${display}</span>`;
+                content += `<span class="nickname-tag">${this.nickname}</span>`;
+                this.el.innerHTML = content;
+                
                 container.appendChild(this.el);
                 
                 // 클릭 이벤트 (전체 내용 보기)
                 this.el.addEventListener('click', (e) => {
                     if (!this.isDragging && !this.wasDragged) {
                         e.stopPropagation();
-                        showModal(this.text, this.color);
+                        showModal(this.text, this.color, this.emoji, this.font, this.nickname);
                     }
                 });
                 
-                // 크기 계산
+                // 우클릭 이벤트
+                this.el.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showContextMenu(e.clientX, e.clientY, this);
+                });
+                
                 this.width = this.el.offsetWidth;
                 this.height = this.el.offsetHeight;
                 
-                // 초기 위치 (겹치지 않는 곳 찾기)
                 this.x = this.findSafeX();
                 this.y = this.findSafeY();
                 
-                // 속도 (랜덤 초기 속도)
                 this.vx = (Math.random() - 0.5) * 4;
                 this.vy = (Math.random() - 0.5) * 4;
                 
-                // 드래그 관련
                 this.isDragging = false;
                 this.wasDragged = false;
                 this.dragOffsetX = 0;
@@ -425,13 +564,15 @@
 
             setupDrag() {
                 this.el.addEventListener('mousedown', (e) => {
-                    this.isDragging = true;
-                    this.wasDragged = false;
-                    this.dragOffsetX = e.clientX - this.x;
-                    this.dragOffsetY = e.clientY - this.y;
-                    this.vx = 0;
-                    this.vy = 0;
-                    e.preventDefault();
+                    if (e.button === 0) { // 좌클릭만
+                        this.isDragging = true;
+                        this.wasDragged = false;
+                        this.dragOffsetX = e.clientX - this.x;
+                        this.dragOffsetY = e.clientY - this.y;
+                        this.vx = 0;
+                        this.vy = 0;
+                        e.preventDefault();
+                    }
                 });
             }
 
@@ -443,15 +584,12 @@
             update() {
                 if (this.isDragging) return;
 
-                // 랜덤 움직임 (떠다니는 느낌)
                 this.vx += (Math.random() - 0.5) * WANDER_FORCE;
                 this.vy += (Math.random() - 0.5) * WANDER_FORCE;
                 
-                // 바람 효과 적용
                 this.vx += windX * 0.01;
                 this.vy += windY * 0.01;
                 
-                // 속도가 너무 느리면 랜덤하게 가속
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 if (speed < MIN_SPEED) {
                     const angle = Math.random() * Math.PI * 2;
@@ -459,22 +597,18 @@
                     this.vy += Math.sin(angle) * 0.2;
                 }
                 
-                // 속도 제한 (너무 빠르지 않게)
                 const maxSpeed = 3;
                 if (speed > maxSpeed) {
                     this.vx = (this.vx / speed) * maxSpeed;
                     this.vy = (this.vy / speed) * maxSpeed;
                 }
 
-                // 속도 적용
                 this.x += this.vx;
                 this.y += this.vy;
 
-                // 마찰
                 this.vx *= FRICTION;
                 this.vy *= FRICTION;
 
-                // 벽 충돌
                 const maxX = window.innerWidth - this.width;
                 const maxY = window.innerHeight - this.height - 80;
 
@@ -551,9 +685,11 @@
         }
 
         // 모달 기능
-        function showModal(text, color) {
-            modalContent.textContent = text;
+        function showModal(text, color, emoji, font, nickname) {
+            modalContent.textContent = (emoji ? emoji + ' ' : '') + text;
             modalContent.style.color = color;
+            modalContent.style.fontFamily = fontMap[font] || fontMap['normal'];
+            modalNickname.textContent = nickname || '익명';
             modalOverlay.classList.add('show');
             document.querySelector('.modal-box').style.borderColor = color;
         }
@@ -563,16 +699,83 @@
         }
 
         modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                hideModal();
+            if (e.target === modalOverlay) hideModal();
+        });
+        modalClose.addEventListener('click', hideModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideModal();
+        });
+
+        // 우클릭 메뉴
+        function showContextMenu(x, y, bubble) {
+            contextTargetBubble = bubble;
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+            contextMenu.classList.add('show');
+        }
+
+        function hideContextMenu() {
+            contextMenu.classList.remove('show');
+            contextTargetBubble = null;
+        }
+
+        document.addEventListener('click', hideContextMenu);
+        document.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.bubble')) {
+                hideContextMenu();
             }
         });
 
-        modalClose.addEventListener('click', hideModal);
+        deleteBtn.addEventListener('click', () => {
+            if (contextTargetBubble) {
+                // 배열에서 제거
+                const index = bubbles.indexOf(contextTargetBubble);
+                if (index > -1) {
+                    bubbles.splice(index, 1);
+                }
+                
+                // localStorage에서도 제거
+                const messages = JSON.parse(localStorage.getItem('floating-messages') || '[]');
+                const newMessages = messages.filter(m => m.id !== contextTargetBubble.id);
+                localStorage.setItem('floating-messages', JSON.stringify(newMessages));
+                
+                // DOM에서 제거
+                contextTargetBubble.destroy();
+                updateCounter();
+                
+                if (bubbles.length === 0) {
+                    empty.classList.remove('hidden');
+                }
+            }
+            hideContextMenu();
+        });
 
+        // 전체화면 모드
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                document.body.classList.add('fullscreen-mode');
+                fullscreenBtn.textContent = '⛶ 전체화면 해제';
+            } else {
+                document.exitFullscreen();
+                document.body.classList.remove('fullscreen-mode');
+                fullscreenBtn.textContent = '⛶ 전체화면';
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                hideModal();
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('fullscreen-mode');
+                fullscreenBtn.textContent = '⛶ 전체화면';
             }
         });
 
@@ -586,7 +789,6 @@
                 const newX = e.clientX - activeBubble.dragOffsetX;
                 const newY = e.clientY - activeBubble.dragOffsetY;
                 
-                // 드래그 거리가 일정 이상이면 드래그로 판정
                 const dragDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
                 if (dragDist > 5) {
                     activeBubble.wasDragged = true;
@@ -609,21 +811,21 @@
         });
 
         container.addEventListener('mousedown', (e) => {
-            const bubble = bubbles.find(b => b.el === e.target);
-            if (bubble) {
-                activeBubble = bubble;
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
+            if (e.button === 0) {
+                const bubble = bubbles.find(b => b.el === e.target || b.el.contains(e.target));
+                if (bubble) {
+                    activeBubble = bubble;
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                }
             }
         });
 
         // 물리 시뮬레이션 루프
         function simulate() {
-            // 바람 방향 천천히 변경
             windChangeTimer++;
-            if (windChangeTimer > 120) { // 약 2초마다
+            if (windChangeTimer > 120) {
                 windChangeTimer = 0;
-                // 부드럽게 바람 방향 변경
                 const targetWindX = (Math.random() - 0.5) * 2;
                 const targetWindY = (Math.random() - 0.5) * 2;
                 windX += (targetWindX - windX) * 0.1;
@@ -643,7 +845,6 @@
             requestAnimationFrame(simulate);
         }
 
-        // 메시지 추가
         function addMessage(data) {
             const bubble = new Bubble(data);
             bubbles.push(bubble);
@@ -658,7 +859,6 @@
             countEl.textContent = bubbles.length;
         }
 
-        // 저장된 메시지 로드
         function loadSaved() {
             const messages = JSON.parse(localStorage.getItem('floating-messages') || '[]');
             if (messages.length > 0) {
@@ -673,23 +873,22 @@
             }
         }
 
-        // BroadcastChannel
         channel.onmessage = (event) => {
             if (event.data.type === 'new-message') {
                 addMessage(event.data);
             }
         };
 
-        // 전체 삭제
         clearBtn.addEventListener('click', () => {
-            bubbles.forEach(b => b.destroy());
-            bubbles = [];
-            localStorage.removeItem('floating-messages');
-            updateCounter();
-            setTimeout(() => empty.classList.remove('hidden'), 300);
+            if (confirm('모든 메시지를 삭제할까요?')) {
+                bubbles.forEach(b => b.destroy());
+                bubbles = [];
+                localStorage.removeItem('floating-messages');
+                updateCounter();
+                setTimeout(() => empty.classList.remove('hidden'), 300);
+            }
         });
 
-        // 윈도우 리사이즈 대응
         window.addEventListener('resize', () => {
             bubbles.forEach(bubble => {
                 const maxX = window.innerWidth - bubble.width;
@@ -700,7 +899,6 @@
             });
         });
 
-        // 초기화
         loadSaved();
         simulate();
     </script>
