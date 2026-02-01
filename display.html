@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ 떠다니는 마음들</title>
+    <title>말풍선 - 화면</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -15,412 +15,483 @@
         }
 
         body {
-            min-height: 100vh;
-            font-family: 'Gowun Batang', serif;
-            background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 50%, #0d0d2b 100%);
+            width: 100vw;
+            height: 100vh;
+            background: #0d0d0d;
             overflow: hidden;
             position: relative;
+            cursor: crosshair;
         }
 
-        /* 별 배경 */
-        .stars {
+        /* 그리드 패턴 */
+        body::before {
+            content: '';
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 80px 80px;
             z-index: 0;
         }
 
-        .star {
-            position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            animation: twinkle 3s infinite;
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-
-        /* 오로라 효과 */
-        .aurora {
+        #canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
-            opacity: 0.3;
-            background: 
-                radial-gradient(ellipse at 20% 20%, rgba(120, 0, 255, 0.3) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(0, 200, 255, 0.2) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(255, 0, 150, 0.15) 0%, transparent 60%);
-            animation: aurora-move 20s ease-in-out infinite;
         }
 
-        @keyframes aurora-move {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.1) rotate(5deg); }
-        }
-
-        /* 메시지 컨테이너 */
-        .messages-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        .bubble {
+            position: absolute;
+            padding: 12px 24px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.4rem;
+            background: #1a1a1a;
+            border: 3px solid currentColor;
+            white-space: nowrap;
+            user-select: none;
+            cursor: grab;
+            transition: box-shadow 0.1s ease;
             z-index: 10;
         }
 
-        /* 떠다니는 메시지 */
-        .floating-message {
-            position: absolute;
-            padding: 16px 28px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 1.3rem;
-            color: #fff;
-            white-space: nowrap;
-            cursor: default;
-            user-select: none;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: float-in 1s ease-out forwards;
-            text-shadow: 0 0 20px currentColor;
+        .bubble:hover {
+            box-shadow: 0 0 0 3px currentColor;
         }
 
-        .floating-message::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            border-radius: 52px;
-            z-index: -1;
-        }
-
-        .floating-message:hover {
-            transform: scale(1.1) !important;
-            box-shadow: 0 0 40px currentColor;
-            z-index: 100;
-        }
-
-        @keyframes float-in {
-            from {
-                opacity: 0;
-                transform: scale(0.5) translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        /* 떠다니는 애니메이션 */
-        @keyframes float-1 {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(20px, -30px) rotate(2deg); }
-            50% { transform: translate(-10px, -50px) rotate(-1deg); }
-            75% { transform: translate(30px, -20px) rotate(1deg); }
-        }
-
-        @keyframes float-2 {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(-30px, -20px) rotate(-2deg); }
-            50% { transform: translate(20px, -40px) rotate(1deg); }
-            75% { transform: translate(-20px, -30px) rotate(-1deg); }
-        }
-
-        @keyframes float-3 {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(15px, -40px) rotate(1deg); }
-            50% { transform: translate(-25px, -20px) rotate(-2deg); }
-            75% { transform: translate(10px, -35px) rotate(0deg); }
+        .bubble:active {
+            cursor: grabbing;
         }
 
         /* 빈 상태 */
-        .empty-state {
+        .empty {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            color: rgba(255, 255, 255, 0.5);
             z-index: 5;
+            pointer-events: none;
         }
 
-        .empty-state h2 {
-            font-family: 'Nanum Myeongjo', serif;
-            font-size: 2rem;
-            margin-bottom: 15px;
-            font-weight: 400;
+        .empty h2 {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 3rem;
+            color: #222;
+            margin-bottom: 10px;
         }
 
-        .empty-state p {
-            font-size: 1.1rem;
-            opacity: 0.7;
+        .empty p {
+            font-family: 'Jua', sans-serif;
+            color: #333;
+            font-size: 1.2rem;
         }
 
-        .empty-state.hidden {
+        .empty.hidden {
             display: none;
         }
 
-        /* 메시지 카운터 */
-        .message-counter {
+        /* 하단 컨트롤 */
+        .controls {
             position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 12px 30px;
-            border-radius: 30px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.95rem;
-            z-index: 20;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        }
+
+        .controls a,
+        .controls button {
+            font-family: 'Jua', sans-serif;
+            font-size: 1rem;
+            color: #666;
+            background: none;
+            border: 2px solid #333;
+            padding: 10px 20px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .controls a:hover,
+        .controls button:hover {
+            color: #fff;
+            border-color: #ff3e3e;
+        }
+
+        .counter {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .counter span {
+            color: #ff3e3e;
         }
 
         /* 새 메시지 알림 */
-        .new-message-alert {
+        .alert {
             position: fixed;
             top: 30px;
             left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateX(-50%) scale(0);
+            background: #ff3e3e;
             color: #fff;
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-size: 1rem;
+            padding: 12px 30px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.1rem;
             opacity: 0;
-            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 200;
         }
 
-        .new-message-alert.show {
-            transform: translateX(-50%) translateY(0);
+        .alert.show {
+            transform: translateX(-50%) scale(1);
             opacity: 1;
-        }
-
-        /* 클리어 버튼 */
-        .clear-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.7);
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-family: 'Noto Sans KR', sans-serif;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 20;
-        }
-
-        .clear-btn:hover {
-            background: rgba(255, 100, 100, 0.2);
-            border-color: rgba(255, 100, 100, 0.4);
-            color: #fff;
-        }
-
-        /* 입력 페이지 링크 */
-        .input-link {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            z-index: 20;
-        }
-
-        .input-link a {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.7);
-            padding: 12px 24px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-
-        .input-link a:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
-
-        .input-link a svg {
-            width: 18px;
-            height: 18px;
         }
     </style>
 </head>
 <body>
-    <div class="stars" id="stars"></div>
-    <div class="aurora"></div>
+    <div class="alert" id="alert">새 메시지!</div>
     
-    <div class="new-message-alert" id="newMessageAlert">✨ 새로운 메시지가 도착했어요!</div>
-    
-    <div class="empty-state" id="emptyState">
-        <h2>🌙 아직 메시지가 없어요</h2>
-        <p>입력 페이지에서 마음을 전해보세요</p>
+    <div class="empty" id="empty">
+        <h2>텅 비었음</h2>
+        <p>입력 페이지에서 메시지를 보내세요</p>
     </div>
     
-    <div class="messages-container" id="messagesContainer"></div>
+    <div id="bubbleContainer"></div>
     
-    <div class="message-counter" id="messageCounter">
-        💬 메시지 <span id="count">0</span>개
+    <div class="controls">
+        <a href="index.html" target="_blank">← 입력하기</a>
+        <div class="counter"><span id="count">0</span>개</div>
+        <button id="clearBtn">전체 삭제</button>
     </div>
-    
-    <div class="input-link">
-        <a href="index.html" target="_blank">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
-            입력 페이지
-        </a>
-    </div>
-    
-    <button class="clear-btn" id="clearBtn">🗑️ 모두 지우기</button>
 
     <script>
-        // 별 생성
-        const starsContainer = document.getElementById('stars');
-        for (let i = 0; i < 200; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            const size = Math.random() * 3 + 1;
-            star.style.width = size + 'px';
-            star.style.height = size + 'px';
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.animationDelay = Math.random() * 3 + 's';
-            star.style.animationDuration = (2 + Math.random() * 2) + 's';
-            starsContainer.appendChild(star);
-        }
-
-        // BroadcastChannel 설정
         const channel = new BroadcastChannel('message-board');
-        
-        const messagesContainer = document.getElementById('messagesContainer');
-        const emptyState = document.getElementById('emptyState');
+        const container = document.getElementById('bubbleContainer');
+        const empty = document.getElementById('empty');
         const countEl = document.getElementById('count');
-        const newMessageAlert = document.getElementById('newMessageAlert');
+        const alert = document.getElementById('alert');
         const clearBtn = document.getElementById('clearBtn');
 
-        const floatAnimations = ['float-1', 'float-2', 'float-3'];
-        let messageElements = [];
+        // 물리 엔진용 버블 배열
+        let bubbles = [];
+        const FRICTION = 0.98;
+        const BOUNCE = 0.7;
+        const PUSH_FORCE = 2;
 
-        // 메시지 생성
-        function createMessageElement(data) {
-            const el = document.createElement('div');
-            el.className = 'floating-message';
-            el.textContent = data.text;
-            el.style.color = data.color;
-            el.dataset.id = data.id;
-            
-            // 랜덤 위치 (화면 가장자리 피하기)
-            const x = 10 + Math.random() * 70; // 10% ~ 80%
-            const y = 10 + Math.random() * 70; // 10% ~ 80%
-            el.style.left = x + '%';
-            el.style.top = y + '%';
-            
-            // 랜덤 애니메이션
-            const anim = floatAnimations[Math.floor(Math.random() * floatAnimations.length)];
-            const duration = 8 + Math.random() * 8; // 8~16초
-            el.style.animation = `float-in 1s ease-out forwards, ${anim} ${duration}s ease-in-out infinite 1s`;
-            
-            return el;
+        class Bubble {
+            constructor(data) {
+                this.id = data.id;
+                this.text = data.text;
+                this.color = data.color;
+                
+                // DOM 요소 생성
+                this.el = document.createElement('div');
+                this.el.className = 'bubble';
+                this.el.textContent = data.text;
+                this.el.style.color = data.color;
+                this.el.style.borderColor = data.color;
+                container.appendChild(this.el);
+                
+                // 크기 계산
+                this.width = this.el.offsetWidth;
+                this.height = this.el.offsetHeight;
+                
+                // 초기 위치 (겹치지 않는 곳 찾기)
+                this.x = this.findSafeX();
+                this.y = this.findSafeY();
+                
+                // 속도 (랜덤 초기 속도)
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                
+                // 드래그 관련
+                this.isDragging = false;
+                this.dragOffsetX = 0;
+                this.dragOffsetY = 0;
+                
+                this.setupDrag();
+                this.updatePosition();
+            }
+
+            findSafeX() {
+                const maxX = window.innerWidth - this.width - 20;
+                let x = 20 + Math.random() * (maxX - 20);
+                // 기존 버블들과 겹치는지 확인
+                for (let attempt = 0; attempt < 50; attempt++) {
+                    let overlapping = false;
+                    for (const other of bubbles) {
+                        if (this.wouldOverlap(x, this.y || window.innerHeight / 2, other)) {
+                            overlapping = true;
+                            break;
+                        }
+                    }
+                    if (!overlapping) return x;
+                    x = 20 + Math.random() * (maxX - 20);
+                }
+                return x;
+            }
+
+            findSafeY() {
+                const maxY = window.innerHeight - this.height - 100;
+                let y = 20 + Math.random() * (maxY - 20);
+                for (let attempt = 0; attempt < 50; attempt++) {
+                    let overlapping = false;
+                    for (const other of bubbles) {
+                        if (this.wouldOverlap(this.x, y, other)) {
+                            overlapping = true;
+                            break;
+                        }
+                    }
+                    if (!overlapping) return y;
+                    y = 20 + Math.random() * (maxY - 20);
+                }
+                return y;
+            }
+
+            wouldOverlap(x, y, other) {
+                const padding = 20;
+                return !(x + this.width + padding < other.x ||
+                        x > other.x + other.width + padding ||
+                        y + this.height + padding < other.y ||
+                        y > other.y + other.height + padding);
+            }
+
+            setupDrag() {
+                this.el.addEventListener('mousedown', (e) => {
+                    this.isDragging = true;
+                    this.dragOffsetX = e.clientX - this.x;
+                    this.dragOffsetY = e.clientY - this.y;
+                    this.vx = 0;
+                    this.vy = 0;
+                    e.preventDefault();
+                });
+            }
+
+            updatePosition() {
+                this.el.style.left = this.x + 'px';
+                this.el.style.top = this.y + 'px';
+            }
+
+            update() {
+                if (this.isDragging) return;
+
+                // 속도 적용
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 마찰
+                this.vx *= FRICTION;
+                this.vy *= FRICTION;
+
+                // 벽 충돌
+                const maxX = window.innerWidth - this.width;
+                const maxY = window.innerHeight - this.height - 80; // 하단 컨트롤 영역
+
+                if (this.x <= 0) {
+                    this.x = 0;
+                    this.vx = -this.vx * BOUNCE;
+                }
+                if (this.x >= maxX) {
+                    this.x = maxX;
+                    this.vx = -this.vx * BOUNCE;
+                }
+                if (this.y <= 0) {
+                    this.y = 0;
+                    this.vy = -this.vy * BOUNCE;
+                }
+                if (this.y >= maxY) {
+                    this.y = maxY;
+                    this.vy = -this.vy * BOUNCE;
+                }
+
+                this.updatePosition();
+            }
+
+            // 다른 버블과 충돌 체크 및 반응
+            collideWith(other) {
+                if (this === other || this.isDragging || other.isDragging) return;
+
+                const padding = 5;
+                const thisRight = this.x + this.width + padding;
+                const thisBottom = this.y + this.height + padding;
+                const otherRight = other.x + other.width + padding;
+                const otherBottom = other.y + other.height + padding;
+
+                // AABB 충돌 체크
+                if (this.x < otherRight && thisRight > other.x &&
+                    this.y < otherBottom && thisBottom > other.y) {
+                    
+                    // 중심점 계산
+                    const thisCenterX = this.x + this.width / 2;
+                    const thisCenterY = this.y + this.height / 2;
+                    const otherCenterX = other.x + other.width / 2;
+                    const otherCenterY = other.y + other.height / 2;
+
+                    // 밀어내는 방향
+                    const dx = thisCenterX - otherCenterX;
+                    const dy = thisCenterY - otherCenterY;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+                    // 정규화된 방향 벡터
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // 겹침 해소 + 반발력
+                    const overlap = Math.min(
+                        thisRight - other.x,
+                        otherRight - this.x,
+                        thisBottom - other.y,
+                        otherBottom - this.y
+                    );
+
+                    // 위치 보정
+                    this.x += nx * overlap * 0.5;
+                    this.y += ny * overlap * 0.5;
+                    other.x -= nx * overlap * 0.5;
+                    other.y -= ny * overlap * 0.5;
+
+                    // 속도 반발
+                    const force = PUSH_FORCE;
+                    this.vx += nx * force;
+                    this.vy += ny * force;
+                    other.vx -= nx * force;
+                    other.vy -= ny * force;
+                }
+            }
+
+            destroy() {
+                this.el.style.transform = 'scale(0)';
+                this.el.style.opacity = '0';
+                this.el.style.transition = 'all 0.3s ease';
+                setTimeout(() => this.el.remove(), 300);
+            }
+        }
+
+        // 마우스 이벤트 (드래그)
+        let activeBubble = null;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            if (activeBubble) {
+                const newX = e.clientX - activeBubble.dragOffsetX;
+                const newY = e.clientY - activeBubble.dragOffsetY;
+                
+                // 드래그 속도 계산 (놓았을 때 튕기기 위해)
+                activeBubble.vx = (newX - activeBubble.x) * 0.5;
+                activeBubble.vy = (newY - activeBubble.y) * 0.5;
+                
+                activeBubble.x = newX;
+                activeBubble.y = newY;
+                activeBubble.updatePosition();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (activeBubble) {
+                activeBubble.isDragging = false;
+                activeBubble = null;
+            }
+        });
+
+        container.addEventListener('mousedown', (e) => {
+            const bubble = bubbles.find(b => b.el === e.target);
+            if (bubble) {
+                activeBubble = bubble;
+            }
+        });
+
+        // 물리 시뮬레이션 루프
+        function simulate() {
+            // 모든 버블 업데이트
+            for (const bubble of bubbles) {
+                bubble.update();
+            }
+
+            // 충돌 체크
+            for (let i = 0; i < bubbles.length; i++) {
+                for (let j = i + 1; j < bubbles.length; j++) {
+                    bubbles[i].collideWith(bubbles[j]);
+                }
+            }
+
+            requestAnimationFrame(simulate);
         }
 
         // 메시지 추가
         function addMessage(data) {
-            const el = createMessageElement(data);
-            messagesContainer.appendChild(el);
-            messageElements.push(el);
-            
+            const bubble = new Bubble(data);
+            bubbles.push(bubble);
             updateCounter();
-            emptyState.classList.add('hidden');
-            
-            // 새 메시지 알림
-            newMessageAlert.classList.add('show');
-            setTimeout(() => {
-                newMessageAlert.classList.remove('show');
-            }, 2000);
+            empty.classList.add('hidden');
+
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 1500);
         }
 
-        // 카운터 업데이트
         function updateCounter() {
-            countEl.textContent = messageElements.length;
+            countEl.textContent = bubbles.length;
         }
 
         // 저장된 메시지 로드
-        function loadSavedMessages() {
+        function loadSaved() {
             const messages = JSON.parse(localStorage.getItem('floating-messages') || '[]');
             if (messages.length > 0) {
-                emptyState.classList.add('hidden');
-                messages.forEach((msg, index) => {
+                empty.classList.add('hidden');
+                messages.forEach((msg, i) => {
                     setTimeout(() => {
-                        const el = createMessageElement(msg);
-                        messagesContainer.appendChild(el);
-                        messageElements.push(el);
+                        const bubble = new Bubble(msg);
+                        bubbles.push(bubble);
                         updateCounter();
-                    }, index * 200); // 순차적으로 나타나는 효과
+                    }, i * 100);
                 });
             }
         }
 
-        // BroadcastChannel 메시지 수신
+        // BroadcastChannel
         channel.onmessage = (event) => {
             if (event.data.type === 'new-message') {
                 addMessage(event.data);
             }
         };
 
-        // 모두 지우기
+        // 전체 삭제
         clearBtn.addEventListener('click', () => {
-            if (confirm('모든 메시지를 지우시겠습니까?')) {
-                messageElements.forEach(el => {
-                    el.style.animation = 'none';
-                    el.style.transition = 'all 0.5s ease';
-                    el.style.opacity = '0';
-                    el.style.transform = 'scale(0)';
-                });
-                
-                setTimeout(() => {
-                    messagesContainer.innerHTML = '';
-                    messageElements = [];
-                    localStorage.removeItem('floating-messages');
-                    updateCounter();
-                    emptyState.classList.remove('hidden');
-                }, 500);
-            }
+            bubbles.forEach(b => b.destroy());
+            bubbles = [];
+            localStorage.removeItem('floating-messages');
+            updateCounter();
+            setTimeout(() => empty.classList.remove('hidden'), 300);
         });
 
-        // 초기 로드
-        loadSavedMessages();
-
-        // 마우스 추적 효과 (메시지가 마우스를 따라 약간 움직임)
-        document.addEventListener('mousemove', (e) => {
-            const mouseX = e.clientX / window.innerWidth;
-            const mouseY = e.clientY / window.innerHeight;
-            
-            messageElements.forEach((el, index) => {
-                const offsetX = (mouseX - 0.5) * 20 * (index % 3 === 0 ? 1 : -1);
-                const offsetY = (mouseY - 0.5) * 20 * (index % 2 === 0 ? 1 : -1);
-                el.style.marginLeft = offsetX + 'px';
-                el.style.marginTop = offsetY + 'px';
+        // 윈도우 리사이즈 대응
+        window.addEventListener('resize', () => {
+            bubbles.forEach(bubble => {
+                const maxX = window.innerWidth - bubble.width;
+                const maxY = window.innerHeight - bubble.height - 80;
+                if (bubble.x > maxX) bubble.x = maxX;
+                if (bubble.y > maxY) bubble.y = maxY;
+                bubble.updatePosition();
             });
         });
+
+        // 초기화
+        loadSaved();
+        simulate();
     </script>
 </body>
 </html>
