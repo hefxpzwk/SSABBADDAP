@@ -59,6 +59,15 @@
             cursor: grab;
             transition: box-shadow 0.1s ease;
             z-index: 10;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bubble.has-more::after {
+            content: '...';
+            color: inherit;
+            opacity: 0.6;
         }
 
         .bubble:hover {
@@ -160,6 +169,89 @@
             transform: translateX(-50%) scale(1);
             opacity: 1;
         }
+
+        /* 모달 오버레이 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 모달 박스 */
+        .modal-box {
+            background: #1a1a1a;
+            border: 4px solid #ff3e3e;
+            padding: 40px;
+            max-width: 600px;
+            max-height: 70vh;
+            width: 90%;
+            transform: scale(0.8) translateY(30px);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: default;
+            position: relative;
+        }
+
+        .modal-overlay.show .modal-box {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-content {
+            font-family: 'Jua', sans-serif;
+            font-size: 1.6rem;
+            color: #fff;
+            line-height: 1.8;
+            word-break: keep-all;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: calc(70vh - 120px);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 50px;
+            height: 50px;
+            background: #ff3e3e;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .modal-close:hover {
+            background: #fff;
+            color: #ff3e3e;
+            transform: rotate(90deg);
+        }
+
+        .modal-hint {
+            font-family: 'Jua', sans-serif;
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 20px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -172,6 +264,15 @@
     
     <div id="bubbleContainer"></div>
     
+    <!-- 모달 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" id="modalClose">✕</button>
+            <div class="modal-content" id="modalContent"></div>
+            <div class="modal-hint">아무 곳이나 클릭해서 닫기</div>
+        </div>
+    </div>
+    
     <div class="controls">
         <a href="index.html" target="_blank">← 입력하기</a>
         <div class="counter"><span id="count">0</span>개</div>
@@ -183,14 +284,26 @@
         const container = document.getElementById('bubbleContainer');
         const empty = document.getElementById('empty');
         const countEl = document.getElementById('count');
-        const alert = document.getElementById('alert');
+        const alertEl = document.getElementById('alert');
         const clearBtn = document.getElementById('clearBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalContent = document.getElementById('modalContent');
+        const modalClose = document.getElementById('modalClose');
 
         // 물리 엔진용 버블 배열
         let bubbles = [];
         const FRICTION = 0.98;
         const BOUNCE = 0.7;
         const PUSH_FORCE = 2;
+        const MAX_DISPLAY_LENGTH = 20; // 표시할 최대 글자 수
+
+        // 텍스트 자르기
+        function truncateText(text) {
+            if (text.length <= MAX_DISPLAY_LENGTH) {
+                return { display: text, truncated: false };
+            }
+            return { display: text.slice(0, MAX_DISPLAY_LENGTH), truncated: true };
+        }
 
         class Bubble {
             constructor(data) {
@@ -198,13 +311,23 @@
                 this.text = data.text;
                 this.color = data.color;
                 
+                const { display, truncated } = truncateText(data.text);
+                
                 // DOM 요소 생성
                 this.el = document.createElement('div');
-                this.el.className = 'bubble';
-                this.el.textContent = data.text;
+                this.el.className = 'bubble' + (truncated ? ' has-more' : '');
+                this.el.textContent = display;
                 this.el.style.color = data.color;
                 this.el.style.borderColor = data.color;
                 container.appendChild(this.el);
+                
+                // 클릭 이벤트 (전체 내용 보기)
+                this.el.addEventListener('click', (e) => {
+                    if (!this.isDragging && !this.wasDragged) {
+                        e.stopPropagation();
+                        showModal(this.text, this.color);
+                    }
+                });
                 
                 // 크기 계산
                 this.width = this.el.offsetWidth;
@@ -220,6 +343,7 @@
                 
                 // 드래그 관련
                 this.isDragging = false;
+                this.wasDragged = false;
                 this.dragOffsetX = 0;
                 this.dragOffsetY = 0;
                 
@@ -230,7 +354,6 @@
             findSafeX() {
                 const maxX = window.innerWidth - this.width - 20;
                 let x = 20 + Math.random() * (maxX - 20);
-                // 기존 버블들과 겹치는지 확인
                 for (let attempt = 0; attempt < 50; attempt++) {
                     let overlapping = false;
                     for (const other of bubbles) {
@@ -273,6 +396,7 @@
             setupDrag() {
                 this.el.addEventListener('mousedown', (e) => {
                     this.isDragging = true;
+                    this.wasDragged = false;
                     this.dragOffsetX = e.clientX - this.x;
                     this.dragOffsetY = e.clientY - this.y;
                     this.vx = 0;
@@ -299,7 +423,7 @@
 
                 // 벽 충돌
                 const maxX = window.innerWidth - this.width;
-                const maxY = window.innerHeight - this.height - 80; // 하단 컨트롤 영역
+                const maxY = window.innerHeight - this.height - 80;
 
                 if (this.x <= 0) {
                     this.x = 0;
@@ -321,7 +445,6 @@
                 this.updatePosition();
             }
 
-            // 다른 버블과 충돌 체크 및 반응
             collideWith(other) {
                 if (this === other || this.isDragging || other.isDragging) return;
 
@@ -331,26 +454,21 @@
                 const otherRight = other.x + other.width + padding;
                 const otherBottom = other.y + other.height + padding;
 
-                // AABB 충돌 체크
                 if (this.x < otherRight && thisRight > other.x &&
                     this.y < otherBottom && thisBottom > other.y) {
                     
-                    // 중심점 계산
                     const thisCenterX = this.x + this.width / 2;
                     const thisCenterY = this.y + this.height / 2;
                     const otherCenterX = other.x + other.width / 2;
                     const otherCenterY = other.y + other.height / 2;
 
-                    // 밀어내는 방향
                     const dx = thisCenterX - otherCenterX;
                     const dy = thisCenterY - otherCenterY;
                     const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
-                    // 정규화된 방향 벡터
                     const nx = dx / dist;
                     const ny = dy / dist;
 
-                    // 겹침 해소 + 반발력
                     const overlap = Math.min(
                         thisRight - other.x,
                         otherRight - this.x,
@@ -358,13 +476,11 @@
                         otherBottom - this.y
                     );
 
-                    // 위치 보정
                     this.x += nx * overlap * 0.5;
                     this.y += ny * overlap * 0.5;
                     other.x -= nx * overlap * 0.5;
                     other.y -= ny * overlap * 0.5;
 
-                    // 속도 반발
                     const force = PUSH_FORCE;
                     this.vx += nx * force;
                     this.vy += ny * force;
@@ -381,17 +497,48 @@
             }
         }
 
+        // 모달 기능
+        function showModal(text, color) {
+            modalContent.textContent = text;
+            modalContent.style.color = color;
+            modalOverlay.classList.add('show');
+            document.querySelector('.modal-box').style.borderColor = color;
+        }
+
+        function hideModal() {
+            modalOverlay.classList.remove('show');
+        }
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                hideModal();
+            }
+        });
+
+        modalClose.addEventListener('click', hideModal);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
+
         // 마우스 이벤트 (드래그)
         let activeBubble = null;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+        let dragStartX = 0;
+        let dragStartY = 0;
 
         document.addEventListener('mousemove', (e) => {
             if (activeBubble) {
                 const newX = e.clientX - activeBubble.dragOffsetX;
                 const newY = e.clientY - activeBubble.dragOffsetY;
                 
-                // 드래그 속도 계산 (놓았을 때 튕기기 위해)
+                // 드래그 거리가 일정 이상이면 드래그로 판정
+                const dragDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
+                if (dragDist > 5) {
+                    activeBubble.wasDragged = true;
+                }
+                
                 activeBubble.vx = (newX - activeBubble.x) * 0.5;
                 activeBubble.vy = (newY - activeBubble.y) * 0.5;
                 
@@ -412,17 +559,17 @@
             const bubble = bubbles.find(b => b.el === e.target);
             if (bubble) {
                 activeBubble = bubble;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
             }
         });
 
         // 물리 시뮬레이션 루프
         function simulate() {
-            // 모든 버블 업데이트
             for (const bubble of bubbles) {
                 bubble.update();
             }
 
-            // 충돌 체크
             for (let i = 0; i < bubbles.length; i++) {
                 for (let j = i + 1; j < bubbles.length; j++) {
                     bubbles[i].collideWith(bubbles[j]);
@@ -439,8 +586,8 @@
             updateCounter();
             empty.classList.add('hidden');
 
-            alert.classList.add('show');
-            setTimeout(() => alert.classList.remove('show'), 1500);
+            alertEl.classList.add('show');
+            setTimeout(() => alertEl.classList.remove('show'), 1500);
         }
 
         function updateCounter() {
