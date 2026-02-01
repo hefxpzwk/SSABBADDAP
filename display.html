@@ -315,10 +315,17 @@
 
         // 물리 엔진용 버블 배열
         let bubbles = [];
-        const FRICTION = 0.98;
+        const FRICTION = 0.995; // 마찰 줄여서 더 오래 움직이게
         const BOUNCE = 0.7;
         const PUSH_FORCE = 2;
         const MAX_DISPLAY_LENGTH = 20; // 표시할 최대 글자 수
+        const MIN_SPEED = 0.3; // 최소 속도
+        const WANDER_FORCE = 0.05; // 랜덤 움직임 힘
+        
+        // 바람 효과 (전체적인 흐름)
+        let windX = 0;
+        let windY = 0;
+        let windChangeTimer = 0;
 
         // 텍스트 자르기
         function truncateText(text) {
@@ -435,6 +442,29 @@
 
             update() {
                 if (this.isDragging) return;
+
+                // 랜덤 움직임 (떠다니는 느낌)
+                this.vx += (Math.random() - 0.5) * WANDER_FORCE;
+                this.vy += (Math.random() - 0.5) * WANDER_FORCE;
+                
+                // 바람 효과 적용
+                this.vx += windX * 0.01;
+                this.vy += windY * 0.01;
+                
+                // 속도가 너무 느리면 랜덤하게 가속
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed < MIN_SPEED) {
+                    const angle = Math.random() * Math.PI * 2;
+                    this.vx += Math.cos(angle) * 0.2;
+                    this.vy += Math.sin(angle) * 0.2;
+                }
+                
+                // 속도 제한 (너무 빠르지 않게)
+                const maxSpeed = 3;
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
 
                 // 속도 적용
                 this.x += this.vx;
@@ -589,6 +619,17 @@
 
         // 물리 시뮬레이션 루프
         function simulate() {
+            // 바람 방향 천천히 변경
+            windChangeTimer++;
+            if (windChangeTimer > 120) { // 약 2초마다
+                windChangeTimer = 0;
+                // 부드럽게 바람 방향 변경
+                const targetWindX = (Math.random() - 0.5) * 2;
+                const targetWindY = (Math.random() - 0.5) * 2;
+                windX += (targetWindX - windX) * 0.1;
+                windY += (targetWindY - windY) * 0.1;
+            }
+            
             for (const bubble of bubbles) {
                 bubble.update();
             }
