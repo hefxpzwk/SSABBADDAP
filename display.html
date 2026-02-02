@@ -37,7 +37,6 @@
             z-index: 0;
         }
 
-        /* 전체화면 모드에서 컨트롤 숨기기 */
         body.fullscreen-mode .controls {
             opacity: 0;
             pointer-events: none;
@@ -91,13 +90,11 @@
             font-family: 'Jua', sans-serif;
         }
 
-        /* 글꼴 스타일 */
         .bubble.font-normal { font-family: 'Jua', sans-serif; }
         .bubble.font-handwriting { font-family: 'Gaegu', cursive; font-size: 1.6rem; }
         .bubble.font-cute { font-family: 'Hi Melody', cursive; font-size: 1.5rem; }
         .bubble.font-pen { font-family: 'Nanum Pen Script', cursive; font-size: 1.7rem; }
 
-        /* 빈 상태 */
         .empty {
             position: fixed;
             top: 50%;
@@ -125,7 +122,6 @@
             display: none;
         }
 
-        /* 하단 컨트롤 */
         .controls {
             position: fixed;
             bottom: 0;
@@ -163,6 +159,7 @@
         .controls-right {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         .counter {
@@ -175,7 +172,27 @@
             color: #ff3e3e;
         }
 
-        /* 새 메시지 알림 */
+        .connection-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Jua', sans-serif;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .connection-dot.connected {
+            background: #00d4aa;
+            box-shadow: 0 0 10px #00d4aa;
+        }
+
         .alert {
             position: fixed;
             top: 30px;
@@ -196,7 +213,6 @@
             opacity: 1;
         }
 
-        /* 우클릭 메뉴 */
         .context-menu {
             position: fixed;
             background: #222;
@@ -227,7 +243,6 @@
             background: #ff3e3e;
         }
 
-        /* 모달 오버레이 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -346,7 +361,6 @@
             text-align: right;
         }
 
-        /* 전체화면 안내 */
         .fullscreen-hint {
             position: fixed;
             top: 20px;
@@ -387,12 +401,10 @@
     
     <div id="bubbleContainer"></div>
     
-    <!-- 우클릭 메뉴 -->
     <div class="context-menu" id="contextMenu">
         <button id="deleteBtn">🗑️ 삭제하기</button>
     </div>
     
-    <!-- 모달 -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
             <button class="modal-close" id="modalClose">✕</button>
@@ -408,6 +420,10 @@
         <div class="controls-left">
             <a href="index.html" target="_blank">← 입력하기</a>
             <button id="fullscreenBtn">⛶ 전체화면</button>
+            <div class="connection-indicator">
+                <div class="connection-dot" id="connectionDot"></div>
+                <span id="connectionText">연결 중...</span>
+            </div>
         </div>
         <div class="counter"><span id="count">0</span>개</div>
         <div class="controls-right">
@@ -415,8 +431,26 @@
         </div>
     </div>
 
-    <script>
-        const channel = new BroadcastChannel('message-board');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, onValue, onChildAdded, onChildRemoved, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJclwKcHAw49YoY7kOVnaANqEJE9gySgg",
+            authDomain: "ssabbaddap-f7f78.firebaseapp.com",
+            databaseURL: "https://ssabbaddap-f7f78-default-rtdb.firebaseio.com",
+            projectId: "ssabbaddap-f7f78",
+            storageBucket: "ssabbaddap-f7f78.firebasestorage.app",
+            messagingSenderId: "598294388307",
+            appId: "1:598294388307:web:9555cdded6ad4216dbf0a6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const messagesRef = ref(database, 'messages');
+
+        // DOM
         const container = document.getElementById('bubbleContainer');
         const empty = document.getElementById('empty');
         const countEl = document.getElementById('count');
@@ -429,8 +463,11 @@
         const modalClose = document.getElementById('modalClose');
         const contextMenu = document.getElementById('contextMenu');
         const deleteBtn = document.getElementById('deleteBtn');
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionText = document.getElementById('connectionText');
 
         let bubbles = [];
+        let bubbleMap = new Map(); // Firebase key -> Bubble
         const FRICTION = 0.995;
         const BOUNCE = 0.7;
         const PUSH_FORCE = 2;
@@ -441,17 +478,27 @@
         let windX = 0;
         let windY = 0;
         let windChangeTimer = 0;
-
-        // 우클릭 메뉴용
         let contextTargetBubble = null;
+        let isFirstLoad = true;
 
-        // 글꼴 매핑
         const fontMap = {
             'normal': "'Jua', sans-serif",
             'handwriting': "'Gaegu', cursive",
             'cute': "'Hi Melody', cursive",
             'pen': "'Nanum Pen Script', cursive"
         };
+
+        // 연결 상태 확인
+        const connectedRef = ref(database, '.info/connected');
+        onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+                connectionDot.classList.add('connected');
+                connectionText.textContent = '실시간 연결됨';
+            } else {
+                connectionDot.classList.remove('connected');
+                connectionText.textContent = '연결 중...';
+            }
+        });
 
         function truncateText(text) {
             if (text.length <= MAX_DISPLAY_LENGTH) {
@@ -461,8 +508,9 @@
         }
 
         class Bubble {
-            constructor(data) {
-                this.id = data.id;
+            constructor(data, firebaseKey) {
+                this.firebaseKey = firebaseKey;
+                this.id = data.timestamp || Date.now();
                 this.text = data.text;
                 this.color = data.color || '#ff3e3e';
                 this.emoji = data.emoji || '';
@@ -476,7 +524,6 @@
                 this.el.style.color = this.color;
                 this.el.style.borderColor = this.color;
                 
-                // 내용 구성
                 let content = '';
                 if (this.emoji) {
                     content += `<span class="emoji">${this.emoji}</span>`;
@@ -487,7 +534,6 @@
                 
                 container.appendChild(this.el);
                 
-                // 클릭 이벤트 (전체 내용 보기)
                 this.el.addEventListener('click', (e) => {
                     if (!this.isDragging && !this.wasDragged) {
                         e.stopPropagation();
@@ -495,7 +541,6 @@
                     }
                 });
                 
-                // 우클릭 이벤트
                 this.el.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -522,34 +567,34 @@
 
             findSafeX() {
                 const maxX = window.innerWidth - this.width - 20;
-                let x = 20 + Math.random() * (maxX - 20);
+                let x = 20 + Math.random() * Math.max(0, maxX - 20);
                 for (let attempt = 0; attempt < 50; attempt++) {
                     let overlapping = false;
                     for (const other of bubbles) {
-                        if (this.wouldOverlap(x, this.y || window.innerHeight / 2, other)) {
+                        if (this !== other && this.wouldOverlap(x, this.y || window.innerHeight / 2, other)) {
                             overlapping = true;
                             break;
                         }
                     }
                     if (!overlapping) return x;
-                    x = 20 + Math.random() * (maxX - 20);
+                    x = 20 + Math.random() * Math.max(0, maxX - 20);
                 }
                 return x;
             }
 
             findSafeY() {
                 const maxY = window.innerHeight - this.height - 100;
-                let y = 20 + Math.random() * (maxY - 20);
+                let y = 20 + Math.random() * Math.max(0, maxY - 20);
                 for (let attempt = 0; attempt < 50; attempt++) {
                     let overlapping = false;
                     for (const other of bubbles) {
-                        if (this.wouldOverlap(this.x, y, other)) {
+                        if (this !== other && this.wouldOverlap(this.x, y, other)) {
                             overlapping = true;
                             break;
                         }
                     }
                     if (!overlapping) return y;
-                    y = 20 + Math.random() * (maxY - 20);
+                    y = 20 + Math.random() * Math.max(0, maxY - 20);
                 }
                 return y;
             }
@@ -564,7 +609,7 @@
 
             setupDrag() {
                 this.el.addEventListener('mousedown', (e) => {
-                    if (e.button === 0) { // 좌클릭만
+                    if (e.button === 0) {
                         this.isDragging = true;
                         this.wasDragged = false;
                         this.dragOffsetX = e.clientX - this.x;
@@ -612,22 +657,10 @@
                 const maxX = window.innerWidth - this.width;
                 const maxY = window.innerHeight - this.height - 80;
 
-                if (this.x <= 0) {
-                    this.x = 0;
-                    this.vx = -this.vx * BOUNCE;
-                }
-                if (this.x >= maxX) {
-                    this.x = maxX;
-                    this.vx = -this.vx * BOUNCE;
-                }
-                if (this.y <= 0) {
-                    this.y = 0;
-                    this.vy = -this.vy * BOUNCE;
-                }
-                if (this.y >= maxY) {
-                    this.y = maxY;
-                    this.vy = -this.vy * BOUNCE;
-                }
+                if (this.x <= 0) { this.x = 0; this.vx = -this.vx * BOUNCE; }
+                if (this.x >= maxX) { this.x = maxX; this.vx = -this.vx * BOUNCE; }
+                if (this.y <= 0) { this.y = 0; this.vy = -this.vy * BOUNCE; }
+                if (this.y >= maxY) { this.y = maxY; this.vy = -this.vy * BOUNCE; }
 
                 this.updatePosition();
             }
@@ -684,7 +717,7 @@
             }
         }
 
-        // 모달 기능
+        // 모달
         function showModal(text, color, emoji, font, nickname) {
             modalContent.textContent = (emoji ? emoji + ' ' : '') + text;
             modalContent.style.color = color;
@@ -721,36 +754,23 @@
 
         document.addEventListener('click', hideContextMenu);
         document.addEventListener('contextmenu', (e) => {
-            if (!e.target.closest('.bubble')) {
-                hideContextMenu();
-            }
+            if (!e.target.closest('.bubble')) hideContextMenu();
         });
 
-        deleteBtn.addEventListener('click', () => {
+        // 개별 삭제 (Firebase에서 삭제)
+        deleteBtn.addEventListener('click', async () => {
             if (contextTargetBubble) {
-                // 배열에서 제거
-                const index = bubbles.indexOf(contextTargetBubble);
-                if (index > -1) {
-                    bubbles.splice(index, 1);
-                }
-                
-                // localStorage에서도 제거
-                const messages = JSON.parse(localStorage.getItem('floating-messages') || '[]');
-                const newMessages = messages.filter(m => m.id !== contextTargetBubble.id);
-                localStorage.setItem('floating-messages', JSON.stringify(newMessages));
-                
-                // DOM에서 제거
-                contextTargetBubble.destroy();
-                updateCounter();
-                
-                if (bubbles.length === 0) {
-                    empty.classList.remove('hidden');
+                try {
+                    const msgRef = ref(database, `messages/${contextTargetBubble.firebaseKey}`);
+                    await remove(msgRef);
+                } catch (error) {
+                    console.error('삭제 실패:', error);
                 }
             }
             hideContextMenu();
         });
 
-        // 전체화면 모드
+        // 전체화면
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
@@ -764,7 +784,6 @@
         }
 
         fullscreenBtn.addEventListener('click', toggleFullscreen);
-        
         document.addEventListener('keydown', (e) => {
             if (e.key === 'F11') {
                 e.preventDefault();
@@ -779,7 +798,7 @@
             }
         });
 
-        // 마우스 이벤트 (드래그)
+        // 드래그
         let activeBubble = null;
         let dragStartX = 0;
         let dragStartY = 0;
@@ -790,9 +809,7 @@
                 const newY = e.clientY - activeBubble.dragOffsetY;
                 
                 const dragDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
-                if (dragDist > 5) {
-                    activeBubble.wasDragged = true;
-                }
+                if (dragDist > 5) activeBubble.wasDragged = true;
                 
                 activeBubble.vx = (newX - activeBubble.x) * 0.5;
                 activeBubble.vy = (newY - activeBubble.y) * 0.5;
@@ -821,7 +838,7 @@
             }
         });
 
-        // 물리 시뮬레이션 루프
+        // 물리 시뮬레이션
         function simulate() {
             windChangeTimer++;
             if (windChangeTimer > 120) {
@@ -845,47 +862,62 @@
             requestAnimationFrame(simulate);
         }
 
-        function addMessage(data) {
-            const bubble = new Bubble(data);
-            bubbles.push(bubble);
-            updateCounter();
-            empty.classList.add('hidden');
-
-            alertEl.classList.add('show');
-            setTimeout(() => alertEl.classList.remove('show'), 1500);
-        }
-
         function updateCounter() {
             countEl.textContent = bubbles.length;
-        }
-
-        function loadSaved() {
-            const messages = JSON.parse(localStorage.getItem('floating-messages') || '[]');
-            if (messages.length > 0) {
+            if (bubbles.length > 0) {
                 empty.classList.add('hidden');
-                messages.forEach((msg, i) => {
-                    setTimeout(() => {
-                        const bubble = new Bubble(msg);
-                        bubbles.push(bubble);
-                        updateCounter();
-                    }, i * 100);
-                });
+            } else {
+                empty.classList.remove('hidden');
             }
         }
 
-        channel.onmessage = (event) => {
-            if (event.data.type === 'new-message') {
-                addMessage(event.data);
-            }
-        };
-
-        clearBtn.addEventListener('click', () => {
-            if (confirm('모든 메시지를 삭제할까요?')) {
-                bubbles.forEach(b => b.destroy());
-                bubbles = [];
-                localStorage.removeItem('floating-messages');
+        // Firebase 실시간 리스너
+        // 새 메시지 추가
+        onChildAdded(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            const key = snapshot.key;
+            
+            if (!bubbleMap.has(key)) {
+                const bubble = new Bubble(data, key);
+                bubbles.push(bubble);
+                bubbleMap.set(key, bubble);
                 updateCounter();
-                setTimeout(() => empty.classList.remove('hidden'), 300);
+                
+                // 첫 로드가 아닐 때만 알림
+                if (!isFirstLoad) {
+                    alertEl.classList.add('show');
+                    setTimeout(() => alertEl.classList.remove('show'), 1500);
+                }
+            }
+        });
+
+        // 메시지 삭제됨
+        onChildRemoved(messagesRef, (snapshot) => {
+            const key = snapshot.key;
+            const bubble = bubbleMap.get(key);
+            
+            if (bubble) {
+                const index = bubbles.indexOf(bubble);
+                if (index > -1) bubbles.splice(index, 1);
+                bubble.destroy();
+                bubbleMap.delete(key);
+                updateCounter();
+            }
+        });
+
+        // 첫 로드 완료 표시
+        setTimeout(() => {
+            isFirstLoad = false;
+        }, 2000);
+
+        // 전체 삭제
+        clearBtn.addEventListener('click', async () => {
+            if (confirm('모든 메시지를 삭제할까요?')) {
+                try {
+                    await remove(messagesRef);
+                } catch (error) {
+                    console.error('전체 삭제 실패:', error);
+                }
             }
         });
 
@@ -893,13 +925,12 @@
             bubbles.forEach(bubble => {
                 const maxX = window.innerWidth - bubble.width;
                 const maxY = window.innerHeight - bubble.height - 80;
-                if (bubble.x > maxX) bubble.x = maxX;
-                if (bubble.y > maxY) bubble.y = maxY;
+                if (bubble.x > maxX) bubble.x = Math.max(0, maxX);
+                if (bubble.y > maxY) bubble.y = Math.max(0, maxY);
                 bubble.updatePosition();
             });
         });
 
-        loadSaved();
         simulate();
     </script>
 </body>
