@@ -126,36 +126,58 @@
 
         .nickname-row {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
             margin-bottom: 15px;
             padding-bottom: 15px;
             border-bottom: 1px solid #333;
         }
 
-        .nickname-display {
+        .nickname-label {
+            font-family: 'Jua', sans-serif;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .nickname-input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nickname-input {
+            flex: 1;
+            padding: 10px 15px;
             font-family: 'Jua', sans-serif;
             font-size: 1.1rem;
+            background: #1a1a1a;
+            border: 2px solid #444;
             color: #fff;
-            flex: 1;
+            outline: none;
+            transition: all 0.15s ease;
         }
 
-        .nickname-display span {
-            color: #ff3e3e;
+        .nickname-input:focus {
+            border-color: #ff3e3e;
         }
 
-        .btn-refresh {
+        .nickname-input::placeholder {
+            color: #555;
+        }
+
+        .btn-random {
             background: none;
             border: 2px solid #444;
             color: #666;
-            padding: 6px 12px;
+            padding: 10px 15px;
             font-family: 'Jua', sans-serif;
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.15s ease;
+            white-space: nowrap;
         }
 
-        .btn-refresh:hover {
+        .btn-random:hover {
             border-color: #ff3e3e;
             color: #ff3e3e;
         }
@@ -432,10 +454,17 @@
             
             <!-- 닉네임 -->
             <div class="nickname-row">
-                <div class="nickname-display">
-                    <span id="nickname">익명의 고양이 🐱</span>
+                <span class="nickname-label">닉네임</span>
+                <div class="nickname-input-row">
+                    <input 
+                        type="text" 
+                        class="nickname-input" 
+                        id="nicknameInput" 
+                        placeholder="닉네임을 입력하세요"
+                        maxlength="20"
+                    >
+                    <button class="btn-random" id="randomNickname">🎲 랜덤</button>
                 </div>
-                <button class="btn-refresh" id="refreshNickname">🔄 다른 이름</button>
             </div>
             
             <!-- 옵션들 -->
@@ -531,8 +560,8 @@
         const sendBtn = document.getElementById('sendBtn');
         const toast = document.getElementById('toast');
         const charCount = document.getElementById('charCount');
-        const nicknameEl = document.getElementById('nickname');
-        const refreshNicknameBtn = document.getElementById('refreshNickname');
+        const nicknameInput = document.getElementById('nicknameInput');
+        const randomNicknameBtn = document.getElementById('randomNickname');
         const previewBubble = document.getElementById('previewBubble');
         const previewEmoji = document.getElementById('previewEmoji');
         const previewText = document.getElementById('previewText');
@@ -544,7 +573,6 @@
         let selectedColor = '#ff3e3e';
         let selectedEmoji = '';
         let selectedFont = 'normal';
-        let currentNickname = '';
         let isConnected = false;
 
         // 연결 상태 확인
@@ -570,23 +598,39 @@
             '부엉이 🦉', '다람쥐 🐿️', '햄스터 🐹', '돌고래 🐬', '유니콘 🦄'
         ];
 
-        function generateNickname() {
+        function generateRandomNickname() {
             const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
             const animal = animals[Math.floor(Math.random() * animals.length)];
-            currentNickname = `${adj} ${animal}`;
-            nicknameEl.textContent = currentNickname;
-            localStorage.setItem('nickname', currentNickname);
+            return `${adj} ${animal}`;
         }
 
+        function setRandomNickname() {
+            const randomName = generateRandomNickname();
+            nicknameInput.value = randomName;
+            localStorage.setItem('nickname', randomName);
+        }
+
+        // 닉네임 입력 시 저장
+        nicknameInput.addEventListener('input', () => {
+            localStorage.setItem('nickname', nicknameInput.value);
+        });
+
+        // 저장된 닉네임 로드 또는 랜덤 생성
         const savedNickname = localStorage.getItem('nickname');
         if (savedNickname) {
-            currentNickname = savedNickname;
-            nicknameEl.textContent = currentNickname;
+            nicknameInput.value = savedNickname;
         } else {
-            generateNickname();
+            setRandomNickname();
         }
 
-        refreshNicknameBtn.addEventListener('click', generateNickname);
+        // 랜덤 버튼 클릭
+        randomNicknameBtn.addEventListener('click', setRandomNickname);
+        
+        // 현재 닉네임 가져오기
+        function getCurrentNickname() {
+            const nickname = nicknameInput.value.trim();
+            return nickname || generateRandomNickname();
+        }
 
         // 색상 선택
         document.getElementById('colorPicker').addEventListener('click', (e) => {
@@ -660,7 +704,7 @@
                 color: selectedColor,
                 emoji: selectedEmoji,
                 font: selectedFont,
-                nickname: currentNickname,
+                nickname: getCurrentNickname(),
                 timestamp: Date.now()
             };
 
