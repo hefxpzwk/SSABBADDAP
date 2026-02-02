@@ -537,7 +537,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, query, orderByChild, limitToFirst, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
         // Firebase 설정
         const firebaseConfig = {
@@ -578,6 +578,7 @@
         // 스팸 방지 쿨다운
         let lastSendTime = 0;
         const COOLDOWN_MS = 3000; // 3초 쿨다운
+        const MAX_MESSAGES = 100; // 최대 메시지 수
 
         // 연결 상태 확인
         const connectedRef = ref(database, '.info/connected');
@@ -727,6 +728,26 @@
             };
 
             try {
+                // 메시지 개수 체크 및 오래된 메시지 삭제
+                const snapshot = await get(messagesRef);
+                if (snapshot.exists()) {
+                    const messages = snapshot.val();
+                    const messageKeys = Object.keys(messages);
+                    
+                    // 100개 이상이면 오래된 것들 삭제
+                    if (messageKeys.length >= MAX_MESSAGES) {
+                        // timestamp 기준 정렬
+                        const sorted = messageKeys.sort((a, b) => 
+                            (messages[a].timestamp || 0) - (messages[b].timestamp || 0)
+                        );
+                        // 가장 오래된 10개 삭제
+                        const toDelete = sorted.slice(0, 10);
+                        for (const key of toDelete) {
+                            await remove(ref(database, `messages/${key}`));
+                        }
+                    }
+                }
+                
                 await push(messagesRef, messageData);
                 
                 // 쿨다운 시작
@@ -741,11 +762,7 @@
                 updatePreview();
             } catch (error) {
                 console.error('전송 실패:', error);
-                if (error.code === 'PERMISSION_DENIED') {
-                    alert('메시지 한도(100개)에 도달했거나 권한이 없습니다.');
-                } else {
-                    alert('메시지 전송에 실패했습니다.');
-                }
+                alert('메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
             }
         }
 
