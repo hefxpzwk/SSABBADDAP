@@ -577,6 +577,7 @@
         
         // 스팸 방지 쿨다운
         let lastSendTime = 0;
+        let isSending = false; // 전송 중 플래그
         const COOLDOWN_MS = 3000; // 3초 쿨다운
         const MAX_MESSAGES = 10; // 최대 메시지 수
 
@@ -701,6 +702,9 @@
 
         // 메시지 전송 (Firebase)
         async function sendMessage() {
+            // 전송 중이면 완전 차단
+            if (isSending) return;
+            
             const text = messageInput.value.trim();
             if (!text || !isConnected) return;
             
@@ -718,6 +722,13 @@
                 return;
             }
 
+            // 즉시 차단 시작 (비동기 작업 전에!)
+            isSending = true;
+            lastSendTime = Date.now();
+            sendBtn.disabled = true;
+            sendBtn.textContent = '전송 중...';
+            messageInput.disabled = true;
+
             const messageData = {
                 text: text,
                 color: selectedColor,
@@ -734,7 +745,7 @@
                     const messages = snapshot.val();
                     const messageKeys = Object.keys(messages);
                     
-                    // 100개 이상이면 오래된 것들 삭제
+                    // 10개 이상이면 오래된 것들 삭제
                     if (messageKeys.length >= MAX_MESSAGES) {
                         // timestamp 기준 정렬
                         const sorted = messageKeys.sort((a, b) => 
@@ -751,9 +762,6 @@
                 
                 await push(messagesRef, messageData);
                 
-                // 쿨다운 시작
-                lastSendTime = Date.now();
-                
                 toast.textContent = '전송됨!';
                 toast.classList.add('show');
                 setTimeout(() => toast.classList.remove('show'), 1500);
@@ -764,6 +772,16 @@
             } catch (error) {
                 console.error('전송 실패:', error);
                 alert('메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            } finally {
+                // 쿨다운 타이머 시작
+                messageInput.disabled = false;
+                sendBtn.textContent = '⏳ 3초';
+                
+                setTimeout(() => {
+                    isSending = false;
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '보내기';
+                }, COOLDOWN_MS);
             }
         }
 
@@ -771,7 +789,7 @@
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                if (!isSending) sendMessage();
             }
         });
 
