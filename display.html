@@ -155,8 +155,7 @@
             border-color: #ff3e3e;
         }
 
-        .controls-left,
-        .controls-right {
+        .controls-left {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -211,36 +210,6 @@
         .alert.show {
             transform: translateX(-50%) scale(1);
             opacity: 1;
-        }
-
-        .context-menu {
-            position: fixed;
-            background: #222;
-            border: 2px solid #ff3e3e;
-            z-index: 1000;
-            display: none;
-        }
-
-        .context-menu.show {
-            display: block;
-        }
-
-        .context-menu button {
-            display: block;
-            width: 100%;
-            padding: 12px 24px;
-            font-family: 'Jua', sans-serif;
-            font-size: 1rem;
-            color: #fff;
-            background: none;
-            border: none;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.15s ease;
-        }
-
-        .context-menu button:hover {
-            background: #ff3e3e;
         }
 
         .modal-overlay {
@@ -401,10 +370,6 @@
     
     <div id="bubbleContainer"></div>
     
-    <div class="context-menu" id="contextMenu">
-        <button id="deleteBtn">🗑️ 삭제하기</button>
-    </div>
-    
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
             <button class="modal-close" id="modalClose">✕</button>
@@ -426,16 +391,12 @@
             </div>
         </div>
         <div class="counter"><span id="count">0</span>개</div>
-        <div class="controls-right">
-            <button id="clearBtn">전체 삭제</button>
-        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-        import { getDatabase, ref, onValue, onChildAdded, onChildRemoved, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+        import { getDatabase, ref, onValue, onChildAdded, onChildRemoved } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyBJclwKcHAw49YoY7kOVnaANqEJE9gySgg",
             authDomain: "ssabbaddap-f7f78.firebaseapp.com",
@@ -450,35 +411,31 @@
         const database = getDatabase(app);
         const messagesRef = ref(database, 'messages');
 
-        // DOM
         const container = document.getElementById('bubbleContainer');
         const empty = document.getElementById('empty');
         const countEl = document.getElementById('count');
         const alertEl = document.getElementById('alert');
-        const clearBtn = document.getElementById('clearBtn');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const modalOverlay = document.getElementById('modalOverlay');
         const modalContent = document.getElementById('modalContent');
         const modalNickname = document.getElementById('modalNickname');
         const modalClose = document.getElementById('modalClose');
-        const contextMenu = document.getElementById('contextMenu');
-        const deleteBtn = document.getElementById('deleteBtn');
         const connectionDot = document.getElementById('connectionDot');
         const connectionText = document.getElementById('connectionText');
 
         let bubbles = [];
-        let bubbleMap = new Map(); // Firebase key -> Bubble
-        const FRICTION = 0.995;
-        const BOUNCE = 0.7;
-        const PUSH_FORCE = 2;
-        const MAX_DISPLAY_LENGTH = 20;
-        const MIN_SPEED = 0.3;
-        const WANDER_FORCE = 0.05;
+        let bubbleMap = new Map();
         
-        let windX = 0;
-        let windY = 0;
-        let windChangeTimer = 0;
-        let contextTargetBubble = null;
+        // 부드러운 움직임을 위한 파라미터
+        const FRICTION = 0.985;           // 마찰 (높을수록 오래 미끄러짐)
+        const BOUNCE = 0.5;               // 튕김 (낮을수록 부드러움)
+        const PUSH_FORCE = 0.8;           // 충돌 시 밀어내는 힘
+        const MAX_DISPLAY_LENGTH = 20;
+        const MIN_SPEED = 0.15;           // 최소 속도 (낮을수록 천천히)
+        const MAX_SPEED = 1.5;            // 최대 속도
+        const WANDER_FORCE = 0.008;       // 랜덤 움직임 (낮을수록 부드러움)
+        
+        let time = 0;                     // 시간 기반 애니메이션용
         let isFirstLoad = true;
 
         const fontMap = {
@@ -507,6 +464,12 @@
             return { display: text.slice(0, MAX_DISPLAY_LENGTH), truncated: true };
         }
 
+        // 부드러운 노이즈 함수 (Simplex-like)
+        function smoothNoise(x, y, seed) {
+            const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+            return n - Math.floor(n);
+        }
+
         class Bubble {
             constructor(data, firebaseKey) {
                 this.firebaseKey = firebaseKey;
@@ -516,6 +479,12 @@
                 this.emoji = data.emoji || '';
                 this.font = data.font || 'normal';
                 this.nickname = data.nickname || '익명';
+                
+                // 각 버블마다 고유한 움직임 패턴
+                this.seed = Math.random() * 1000;
+                this.phaseX = Math.random() * Math.PI * 2;
+                this.phaseY = Math.random() * Math.PI * 2;
+                this.speedMultiplier = 0.5 + Math.random() * 0.5;
                 
                 const { display, truncated } = truncateText(data.text);
                 
@@ -541,20 +510,15 @@
                     }
                 });
                 
-                this.el.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showContextMenu(e.clientX, e.clientY, this);
-                });
-                
                 this.width = this.el.offsetWidth;
                 this.height = this.el.offsetHeight;
                 
                 this.x = this.findSafeX();
                 this.y = this.findSafeY();
                 
-                this.vx = (Math.random() - 0.5) * 4;
-                this.vy = (Math.random() - 0.5) * 4;
+                // 초기 속도를 낮게
+                this.vx = (Math.random() - 0.5) * 1;
+                this.vy = (Math.random() - 0.5) * 1;
                 
                 this.isDragging = false;
                 this.wasDragged = false;
@@ -626,41 +590,57 @@
                 this.el.style.top = this.y + 'px';
             }
 
-            update() {
+            update(globalTime) {
                 if (this.isDragging) return;
 
-                this.vx += (Math.random() - 0.5) * WANDER_FORCE;
-                this.vy += (Math.random() - 0.5) * WANDER_FORCE;
+                // 사인파 기반의 부드러운 움직임 (물결처럼)
+                const waveX = Math.sin(globalTime * 0.0008 * this.speedMultiplier + this.phaseX) * WANDER_FORCE;
+                const waveY = Math.cos(globalTime * 0.0006 * this.speedMultiplier + this.phaseY) * WANDER_FORCE;
                 
-                this.vx += windX * 0.01;
-                this.vy += windY * 0.01;
+                this.vx += waveX;
+                this.vy += waveY;
                 
+                // 속도가 너무 느리면 살짝 가속
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 if (speed < MIN_SPEED) {
-                    const angle = Math.random() * Math.PI * 2;
-                    this.vx += Math.cos(angle) * 0.2;
-                    this.vy += Math.sin(angle) * 0.2;
+                    const angle = globalTime * 0.001 + this.seed;
+                    this.vx += Math.cos(angle) * 0.02;
+                    this.vy += Math.sin(angle) * 0.02;
                 }
                 
-                const maxSpeed = 3;
-                if (speed > maxSpeed) {
-                    this.vx = (this.vx / speed) * maxSpeed;
-                    this.vy = (this.vy / speed) * maxSpeed;
+                // 최대 속도 제한
+                if (speed > MAX_SPEED) {
+                    this.vx = (this.vx / speed) * MAX_SPEED;
+                    this.vy = (this.vy / speed) * MAX_SPEED;
                 }
 
                 this.x += this.vx;
                 this.y += this.vy;
 
+                // 마찰
                 this.vx *= FRICTION;
                 this.vy *= FRICTION;
 
+                // 벽 충돌 (부드럽게)
                 const maxX = window.innerWidth - this.width;
                 const maxY = window.innerHeight - this.height - 80;
 
-                if (this.x <= 0) { this.x = 0; this.vx = -this.vx * BOUNCE; }
-                if (this.x >= maxX) { this.x = maxX; this.vx = -this.vx * BOUNCE; }
-                if (this.y <= 0) { this.y = 0; this.vy = -this.vy * BOUNCE; }
-                if (this.y >= maxY) { this.y = maxY; this.vy = -this.vy * BOUNCE; }
+                if (this.x <= 0) {
+                    this.x = 0;
+                    this.vx = Math.abs(this.vx) * BOUNCE;
+                }
+                if (this.x >= maxX) {
+                    this.x = maxX;
+                    this.vx = -Math.abs(this.vx) * BOUNCE;
+                }
+                if (this.y <= 0) {
+                    this.y = 0;
+                    this.vy = Math.abs(this.vy) * BOUNCE;
+                }
+                if (this.y >= maxY) {
+                    this.y = maxY;
+                    this.vy = -Math.abs(this.vy) * BOUNCE;
+                }
 
                 this.updatePosition();
             }
@@ -668,7 +648,7 @@
             collideWith(other) {
                 if (this === other || this.isDragging || other.isDragging) return;
 
-                const padding = 5;
+                const padding = 10;
                 const thisRight = this.x + this.width + padding;
                 const thisBottom = this.y + this.height + padding;
                 const otherRight = other.x + other.width + padding;
@@ -696,24 +676,26 @@
                         otherBottom - this.y
                     );
 
-                    this.x += nx * overlap * 0.5;
-                    this.y += ny * overlap * 0.5;
-                    other.x -= nx * overlap * 0.5;
-                    other.y -= ny * overlap * 0.5;
+                    // 부드럽게 분리
+                    const separation = overlap * 0.3;
+                    this.x += nx * separation;
+                    this.y += ny * separation;
+                    other.x -= nx * separation;
+                    other.y -= ny * separation;
 
-                    const force = PUSH_FORCE;
-                    this.vx += nx * force;
-                    this.vy += ny * force;
-                    other.vx -= nx * force;
-                    other.vy -= ny * force;
+                    // 부드러운 반발력
+                    this.vx += nx * PUSH_FORCE;
+                    this.vy += ny * PUSH_FORCE;
+                    other.vx -= nx * PUSH_FORCE;
+                    other.vy -= ny * PUSH_FORCE;
                 }
             }
 
             destroy() {
                 this.el.style.transform = 'scale(0)';
                 this.el.style.opacity = '0';
-                this.el.style.transition = 'all 0.3s ease';
-                setTimeout(() => this.el.remove(), 300);
+                this.el.style.transition = 'all 0.5s ease';
+                setTimeout(() => this.el.remove(), 500);
             }
         }
 
@@ -737,37 +719,6 @@
         modalClose.addEventListener('click', hideModal);
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideModal();
-        });
-
-        // 우클릭 메뉴
-        function showContextMenu(x, y, bubble) {
-            contextTargetBubble = bubble;
-            contextMenu.style.left = x + 'px';
-            contextMenu.style.top = y + 'px';
-            contextMenu.classList.add('show');
-        }
-
-        function hideContextMenu() {
-            contextMenu.classList.remove('show');
-            contextTargetBubble = null;
-        }
-
-        document.addEventListener('click', hideContextMenu);
-        document.addEventListener('contextmenu', (e) => {
-            if (!e.target.closest('.bubble')) hideContextMenu();
-        });
-
-        // 개별 삭제 (Firebase에서 삭제)
-        deleteBtn.addEventListener('click', async () => {
-            if (contextTargetBubble) {
-                try {
-                    const msgRef = ref(database, `messages/${contextTargetBubble.firebaseKey}`);
-                    await remove(msgRef);
-                } catch (error) {
-                    console.error('삭제 실패:', error);
-                }
-            }
-            hideContextMenu();
         });
 
         // 전체화면
@@ -811,8 +762,9 @@
                 const dragDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
                 if (dragDist > 5) activeBubble.wasDragged = true;
                 
-                activeBubble.vx = (newX - activeBubble.x) * 0.5;
-                activeBubble.vy = (newY - activeBubble.y) * 0.5;
+                // 부드러운 드래그 속도
+                activeBubble.vx = (newX - activeBubble.x) * 0.3;
+                activeBubble.vy = (newY - activeBubble.y) * 0.3;
                 
                 activeBubble.x = newX;
                 activeBubble.y = newY;
@@ -840,17 +792,10 @@
 
         // 물리 시뮬레이션
         function simulate() {
-            windChangeTimer++;
-            if (windChangeTimer > 120) {
-                windChangeTimer = 0;
-                const targetWindX = (Math.random() - 0.5) * 2;
-                const targetWindY = (Math.random() - 0.5) * 2;
-                windX += (targetWindX - windX) * 0.1;
-                windY += (targetWindY - windY) * 0.1;
-            }
+            time++;
             
             for (const bubble of bubbles) {
-                bubble.update();
+                bubble.update(time);
             }
 
             for (let i = 0; i < bubbles.length; i++) {
@@ -872,7 +817,6 @@
         }
 
         // Firebase 실시간 리스너
-        // 새 메시지 추가
         onChildAdded(messagesRef, (snapshot) => {
             const data = snapshot.val();
             const key = snapshot.key;
@@ -883,7 +827,6 @@
                 bubbleMap.set(key, bubble);
                 updateCounter();
                 
-                // 첫 로드가 아닐 때만 알림
                 if (!isFirstLoad) {
                     alertEl.classList.add('show');
                     setTimeout(() => alertEl.classList.remove('show'), 1500);
@@ -891,7 +834,6 @@
             }
         });
 
-        // 메시지 삭제됨
         onChildRemoved(messagesRef, (snapshot) => {
             const key = snapshot.key;
             const bubble = bubbleMap.get(key);
@@ -905,21 +847,9 @@
             }
         });
 
-        // 첫 로드 완료 표시
         setTimeout(() => {
             isFirstLoad = false;
         }, 2000);
-
-        // 전체 삭제
-        clearBtn.addEventListener('click', async () => {
-            if (confirm('모든 메시지를 삭제할까요?')) {
-                try {
-                    await remove(messagesRef);
-                } catch (error) {
-                    console.error('전체 삭제 실패:', error);
-                }
-            }
-        });
 
         window.addEventListener('resize', () => {
             bubbles.forEach(bubble => {
