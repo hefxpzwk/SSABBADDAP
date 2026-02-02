@@ -593,11 +593,128 @@
         .theme-select:hover {
             border-color: var(--accent);
         }
+
+        /* 토네이도 모드 커서 */
+        body.tornado-mode {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E🌪️%3C/text%3E%3C/svg%3E") 16 16, crosshair;
+        }
+
+        /* 바운스패드 모드 커서 */
+        body.bouncepad-mode {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E🟣%3C/text%3E%3C/svg%3E") 16 16, crosshair;
+        }
+
+        /* 토네이도 효과 */
+        .tornado {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+        }
+
+        .tornado-spiral {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid rgba(100, 200, 255, 0.6);
+            border-radius: 50%;
+            animation: tornado-spin 0.5s linear infinite;
+        }
+
+        .tornado-spiral:nth-child(1) { width: 180px; height: 180px; top: 10px; left: 10px; }
+        .tornado-spiral:nth-child(2) { width: 140px; height: 140px; top: 30px; left: 30px; animation-duration: 0.4s; }
+        .tornado-spiral:nth-child(3) { width: 100px; height: 100px; top: 50px; left: 50px; animation-duration: 0.3s; }
+        .tornado-spiral:nth-child(4) { width: 60px; height: 60px; top: 70px; left: 70px; animation-duration: 0.2s; }
+
+        @keyframes tornado-spin {
+            0% { transform: rotate(0deg); border-color: rgba(100, 200, 255, 0.8); }
+            50% { border-color: rgba(150, 220, 255, 0.4); }
+            100% { transform: rotate(360deg); border-color: rgba(100, 200, 255, 0.8); }
+        }
+
+        /* 바운스패드 */
+        .bouncepad {
+            position: fixed;
+            pointer-events: none;
+            z-index: 50;
+            width: 120px;
+            height: 30px;
+            background: linear-gradient(180deg, #ff6b6b 0%, #ee5a5a 50%, #cc4444 100%);
+            border-radius: 10px;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 5px 15px rgba(255, 100, 100, 0.5),
+                        inset 0 2px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .bouncepad.bouncing {
+            animation: pad-bounce 0.2s ease-out;
+        }
+
+        @keyframes pad-bounce {
+            0% { transform: translate(-50%, -50%) scaleY(1); }
+            50% { transform: translate(-50%, -50%) scaleY(0.5); }
+            100% { transform: translate(-50%, -50%) scaleY(1); }
+        }
+
+        /* 지진 효과 */
+        @keyframes earthquake {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-10px, -5px); }
+            20% { transform: translate(10px, 5px); }
+            30% { transform: translate(-8px, 8px); }
+            40% { transform: translate(8px, -8px); }
+            50% { transform: translate(-5px, 10px); }
+            60% { transform: translate(5px, -10px); }
+            70% { transform: translate(-10px, 5px); }
+            80% { transform: translate(10px, -5px); }
+            90% { transform: translate(-5px, -10px); }
+        }
+
+        body.shaking {
+            animation: earthquake 0.5s ease-in-out;
+        }
+
+        body.shaking #bubbleContainer {
+            animation: earthquake 0.5s ease-in-out;
+        }
+
+        /* 프리즈 효과 */
+        .bubble.frozen {
+            filter: brightness(1.5) saturate(0.5);
+            box-shadow: 0 0 20px rgba(150, 220, 255, 0.8), inset 0 0 10px rgba(150, 220, 255, 0.5);
+        }
+
+        .freeze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(150, 220, 255, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 300;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .freeze-overlay.active {
+            opacity: 1;
+        }
+
+        /* 버튼 그룹 스타일 */
+        .btn-group {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body data-theme="dark">
     <div class="alert" id="alert">새 메시지!</div>
     <div class="particles-container" id="particlesContainer"></div>
+    <div class="freeze-overlay" id="freezeOverlay"></div>
     
     <div class="fullscreen-hint">
         <kbd>F11</kbd> 전체화면 모드
@@ -637,11 +754,23 @@
                 <option value="neon">💜 네온</option>
                 <option value="pastel">🌸 파스텔</option>
             </select>
-            <button id="gravityBtn">🌍 중력</button>
-            <button id="bombBtn">💣 폭탄</button>
-            <button id="blackholeBtn">🕳️ 블랙홀</button>
-            <button id="highlightBtn">✨ 하이라이트</button>
-            <button id="soundBtn" class="active">🔔 효과음</button>
+            <div class="btn-group">
+                <button id="gravityBtn">🌍 중력</button>
+                <button id="bombBtn">💣 폭탄</button>
+                <button id="blackholeBtn">🕳️ 블랙홀</button>
+                <button id="tornadoBtn">🌪️ 토네이도</button>
+                <button id="bouncepadBtn">🟣 바운스패드</button>
+            </div>
+            <div class="btn-group">
+                <button id="freezeBtn">❄️ 프리즈</button>
+                <button id="earthquakeBtn">💥 지진</button>
+                <button id="shuffleBtn">🔀 셔플</button>
+                <button id="partyBtn">🎉 파티</button>
+            </div>
+            <div class="btn-group">
+                <button id="highlightBtn">✨ 하이라이트</button>
+                <button id="soundBtn" class="active">🔔 효과음</button>
+            </div>
         </div>
         <div class="controls-right">
             <div class="counter"><span id="count">0</span>개</div>
@@ -685,8 +814,15 @@
         const gravityBtn = document.getElementById('gravityBtn');
         const bombBtn = document.getElementById('bombBtn');
         const blackholeBtn = document.getElementById('blackholeBtn');
+        const tornadoBtn = document.getElementById('tornadoBtn');
+        const bouncepadBtn = document.getElementById('bouncepadBtn');
+        const freezeBtn = document.getElementById('freezeBtn');
+        const earthquakeBtn = document.getElementById('earthquakeBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const partyBtn = document.getElementById('partyBtn');
         const highlightBtn = document.getElementById('highlightBtn');
         const soundBtn = document.getElementById('soundBtn');
+        const freezeOverlay = document.getElementById('freezeOverlay');
 
         let bubbles = [];
         let bubbleMap = new Map();
@@ -707,13 +843,21 @@
         let gravityMode = false;
         let bombMode = false;
         let blackholeMode = false;
+        let tornadoMode = false;
+        let bouncepadMode = false;
+        let isFrozen = false;
         let highlightMode = false;
         let soundEnabled = true;
         let highlightedBubble = null;
         let highlightTimer = null;
         
-        // 활성 블랙홀들
+        // 활성 블랙홀들, 토네이도들, 바운스패드들
         let activeBlackholes = [];
+        let activeTornadoes = [];
+        let activBouncepads = [];
+        
+        // 파티 모드용 원래 위치 저장
+        let partyOriginalPositions = [];
 
         const fontMap = {
             'normal': "'Jua', sans-serif",
@@ -918,6 +1062,245 @@
             }, 3000);
         }
 
+        // 토네이도 효과음
+        function playTornadoSound() {
+            if (!soundEnabled) return;
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            osc.frequency.setValueAtTime(200, audioContext.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioContext.currentTime + 0.5);
+            osc.frequency.linearRampToValueAtTime(200, audioContext.currentTime + 2);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 2);
+            osc.type = 'sawtooth';
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 2);
+        }
+
+        // 토네이도 생성
+        function createTornado(x, y) {
+            const tornado = document.createElement('div');
+            tornado.className = 'tornado';
+            tornado.style.left = x + 'px';
+            tornado.style.top = y + 'px';
+            
+            for (let i = 0; i < 4; i++) {
+                const spiral = document.createElement('div');
+                spiral.className = 'tornado-spiral';
+                tornado.appendChild(spiral);
+            }
+            
+            document.body.appendChild(tornado);
+            playTornadoSound();
+            
+            const tornadoData = {
+                x: x,
+                y: y,
+                element: tornado,
+                strength: 150,
+                radius: 400,
+                createdAt: Date.now()
+            };
+            
+            activeTornadoes.push(tornadoData);
+            
+            // 2초 후 토네이도 사라짐
+            setTimeout(() => {
+                tornado.style.opacity = '0';
+                tornado.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    tornado.remove();
+                    const index = activeTornadoes.indexOf(tornadoData);
+                    if (index > -1) activeTornadoes.splice(index, 1);
+                }, 500);
+            }, 2000);
+        }
+
+        // 바운스 효과음
+        function playBounceSound() {
+            if (!soundEnabled) return;
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            osc.frequency.setValueAtTime(300, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            osc.type = 'sine';
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.2);
+        }
+
+        // 바운스패드 생성
+        function createBouncepad(x, y) {
+            const pad = document.createElement('div');
+            pad.className = 'bouncepad';
+            pad.style.left = x + 'px';
+            pad.style.top = y + 'px';
+            
+            document.body.appendChild(pad);
+            
+            const padData = {
+                x: x,
+                y: y,
+                width: 120,
+                height: 30,
+                element: pad,
+                bounceForce: 25,
+                createdAt: Date.now()
+            };
+            
+            activBouncepads.push(padData);
+            
+            // 10초 후 바운스패드 사라짐
+            setTimeout(() => {
+                pad.style.opacity = '0';
+                pad.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    pad.remove();
+                    const index = activBouncepads.indexOf(padData);
+                    if (index > -1) activBouncepads.splice(index, 1);
+                }, 500);
+            }, 10000);
+        }
+
+        // 프리즈 효과음
+        function playFreezeSound() {
+            if (!soundEnabled) return;
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            osc.frequency.setValueAtTime(1000, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.5);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+            osc.type = 'sine';
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.5);
+        }
+
+        // 프리즈 기능
+        function triggerFreeze() {
+            if (isFrozen) return;
+            isFrozen = true;
+            playFreezeSound();
+            
+            freezeOverlay.classList.add('active');
+            bubbles.forEach(b => b.el.classList.add('frozen'));
+            
+            // 3초 후 해제
+            setTimeout(() => {
+                isFrozen = false;
+                freezeOverlay.classList.remove('active');
+                bubbles.forEach(b => b.el.classList.remove('frozen'));
+            }, 3000);
+        }
+
+        // 지진 효과음
+        function playEarthquakeSound() {
+            if (!soundEnabled) return;
+            const bufferSize = audioContext.sampleRate * 0.5;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+            }
+            const noise = audioContext.createBufferSource();
+            noise.buffer = buffer;
+            const noiseGain = audioContext.createGain();
+            noiseGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            noise.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+            noise.start(audioContext.currentTime);
+        }
+
+        // 지진 기능
+        function triggerEarthquake() {
+            document.body.classList.add('shaking');
+            playEarthquakeSound();
+            
+            // 모든 말풍선에 랜덤 힘 적용
+            bubbles.forEach(bubble => {
+                bubble.vx += (Math.random() - 0.5) * 30;
+                bubble.vy += (Math.random() - 0.5) * 30;
+            });
+            
+            setTimeout(() => {
+                document.body.classList.remove('shaking');
+            }, 500);
+        }
+
+        // 셔플 기능
+        function triggerShuffle() {
+            playSound();
+            
+            bubbles.forEach(bubble => {
+                const newX = 20 + Math.random() * (window.innerWidth - bubble.width - 40);
+                const newY = 20 + Math.random() * (window.innerHeight - bubble.height - 120);
+                
+                // 부드러운 이동을 위해 속도 설정
+                bubble.vx = (newX - bubble.x) * 0.1;
+                bubble.vy = (newY - bubble.y) * 0.1;
+            });
+        }
+
+        // 파티 효과음
+        function playPartySound() {
+            if (!soundEnabled) return;
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const osc = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    osc.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    osc.frequency.setValueAtTime(400 + i * 100, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    osc.type = 'square';
+                    osc.start(audioContext.currentTime);
+                    osc.stop(audioContext.currentTime + 0.2);
+                }, i * 100);
+            }
+        }
+
+        // 파티 모드
+        function triggerParty() {
+            playPartySound();
+            
+            // 원래 위치 저장
+            partyOriginalPositions = bubbles.map(b => ({ x: b.x, y: b.y }));
+            
+            // 미친듯이 날뛰기
+            const partyDuration = 3000;
+            const partyStart = Date.now();
+            
+            function partyMove() {
+                const elapsed = Date.now() - partyStart;
+                if (elapsed < partyDuration) {
+                    bubbles.forEach(bubble => {
+                        bubble.vx += (Math.random() - 0.5) * 15;
+                        bubble.vy += (Math.random() - 0.5) * 15;
+                    });
+                    setTimeout(partyMove, 100);
+                } else {
+                    // 원위치로 돌아가기
+                    bubbles.forEach((bubble, i) => {
+                        if (partyOriginalPositions[i]) {
+                            bubble.vx = (partyOriginalPositions[i].x - bubble.x) * 0.05;
+                            bubble.vy = (partyOriginalPositions[i].y - bubble.y) * 0.05;
+                        }
+                    });
+                }
+            }
+            
+            partyMove();
+        }
+
         // 파티클 생성
         function createParticles(x, y, color) {
             const particleCount = 12;
@@ -1083,6 +1466,14 @@
 
             update(globalTime) {
                 if (this.isDragging) return;
+                
+                // 프리즈 상태면 움직이지 않음
+                if (isFrozen) {
+                    this.vx *= 0.8;
+                    this.vy *= 0.8;
+                    this.updatePosition();
+                    return;
+                }
 
                 const t = globalTime * 0.001 * this.speedMultiplier;
                 
@@ -1117,6 +1508,48 @@
                         
                         driftX += nx * force;
                         driftY += ny * force;
+                    }
+                }
+                
+                // 토네이도 힘 적용 (회전!)
+                for (const tornado of activeTornadoes) {
+                    const cx = this.x + this.width / 2;
+                    const cy = this.y + this.height / 2;
+                    const dx = tornado.x - cx;
+                    const dy = tornado.y - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < tornado.radius && dist > 20) {
+                        const force = (1 - dist / tornado.radius) * tornado.strength * 0.01;
+                        // 회전 방향 (접선 방향)
+                        const tx = -dy / dist;
+                        const ty = dx / dist;
+                        // 중심으로 끌어당기는 힘도 추가
+                        const pullForce = force * 0.3;
+                        
+                        driftX += tx * force + (dx / dist) * pullForce;
+                        driftY += ty * force + (dy / dist) * pullForce;
+                    }
+                }
+                
+                // 바운스패드 충돌 체크
+                for (const pad of activBouncepads) {
+                    const bubbleBottom = this.y + this.height;
+                    const bubbleCenterX = this.x + this.width / 2;
+                    const padTop = pad.y - pad.height / 2;
+                    const padBottom = pad.y + pad.height / 2;
+                    const padLeft = pad.x - pad.width / 2;
+                    const padRight = pad.x + pad.width / 2;
+                    
+                    // 버블이 패드 위에서 아래로 내려올 때
+                    if (bubbleCenterX > padLeft && bubbleCenterX < padRight &&
+                        bubbleBottom >= padTop && bubbleBottom <= padBottom + 10 &&
+                        this.vy > 0) {
+                        this.vy = -pad.bounceForce;
+                        this.vx += (Math.random() - 0.5) * 5;
+                        pad.element.classList.add('bouncing');
+                        playBounceSound();
+                        setTimeout(() => pad.element.classList.remove('bouncing'), 200);
                     }
                 }
                 
@@ -1275,23 +1708,71 @@
         bombBtn.addEventListener('click', () => {
             bombMode = !bombMode;
             blackholeMode = false;
+            tornadoMode = false;
+            bouncepadMode = false;
             bombBtn.classList.toggle('active', bombMode);
             blackholeBtn.classList.remove('active');
+            tornadoBtn.classList.remove('active');
+            bouncepadBtn.classList.remove('active');
             document.body.classList.toggle('bomb-mode', bombMode);
-            document.body.classList.remove('blackhole-mode');
+            document.body.classList.remove('blackhole-mode', 'tornado-mode', 'bouncepad-mode');
         });
 
         // 블랙홀 모드 토글
         blackholeBtn.addEventListener('click', () => {
             blackholeMode = !blackholeMode;
             bombMode = false;
+            tornadoMode = false;
+            bouncepadMode = false;
             blackholeBtn.classList.toggle('active', blackholeMode);
             bombBtn.classList.remove('active');
+            tornadoBtn.classList.remove('active');
+            bouncepadBtn.classList.remove('active');
             document.body.classList.toggle('blackhole-mode', blackholeMode);
-            document.body.classList.remove('bomb-mode');
+            document.body.classList.remove('bomb-mode', 'tornado-mode', 'bouncepad-mode');
         });
 
-        // 폭탄/블랙홀 클릭 이벤트
+        // 토네이도 모드 토글
+        tornadoBtn.addEventListener('click', () => {
+            tornadoMode = !tornadoMode;
+            bombMode = false;
+            blackholeMode = false;
+            bouncepadMode = false;
+            tornadoBtn.classList.toggle('active', tornadoMode);
+            bombBtn.classList.remove('active');
+            blackholeBtn.classList.remove('active');
+            bouncepadBtn.classList.remove('active');
+            document.body.classList.toggle('tornado-mode', tornadoMode);
+            document.body.classList.remove('bomb-mode', 'blackhole-mode', 'bouncepad-mode');
+        });
+
+        // 바운스패드 모드 토글
+        bouncepadBtn.addEventListener('click', () => {
+            bouncepadMode = !bouncepadMode;
+            bombMode = false;
+            blackholeMode = false;
+            tornadoMode = false;
+            bouncepadBtn.classList.toggle('active', bouncepadMode);
+            bombBtn.classList.remove('active');
+            blackholeBtn.classList.remove('active');
+            tornadoBtn.classList.remove('active');
+            document.body.classList.toggle('bouncepad-mode', bouncepadMode);
+            document.body.classList.remove('bomb-mode', 'blackhole-mode', 'tornado-mode');
+        });
+
+        // 프리즈 버튼
+        freezeBtn.addEventListener('click', triggerFreeze);
+
+        // 지진 버튼
+        earthquakeBtn.addEventListener('click', triggerEarthquake);
+
+        // 셔플 버튼
+        shuffleBtn.addEventListener('click', triggerShuffle);
+
+        // 파티 버튼
+        partyBtn.addEventListener('click', triggerParty);
+
+        // 클릭 모드별 이벤트
         document.addEventListener('click', (e) => {
             // 컨트롤 영역이나 버블 클릭은 무시
             if (e.target.closest('.controls') || 
@@ -1302,6 +1783,10 @@
                 createExplosion(e.clientX, e.clientY);
             } else if (blackholeMode) {
                 createBlackhole(e.clientX, e.clientY);
+            } else if (tornadoMode) {
+                createTornado(e.clientX, e.clientY);
+            } else if (bouncepadMode) {
+                createBouncepad(e.clientX, e.clientY);
             }
         });
 
