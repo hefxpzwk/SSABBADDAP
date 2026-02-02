@@ -8,6 +8,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Gaegu:wght@400;700&family=Hi+Melody&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* 다크 테마 (기본) */
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #666666;
+            --accent: #ff3e3e;
+            --grid-color: rgba(255,255,255,0.02);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #888888;
+            --accent: #ff3e3e;
+            --grid-color: rgba(0,0,0,0.03);
+        }
+
+        [data-theme="neon"] {
+            --bg-primary: #0a0a15;
+            --bg-secondary: #12121f;
+            --text-primary: #00ffff;
+            --text-secondary: #ff00ff;
+            --accent: #00ff88;
+            --grid-color: rgba(0,255,255,0.03);
+        }
+
+        [data-theme="pastel"] {
+            --bg-primary: #fef6e4;
+            --bg-secondary: #fff8f0;
+            --text-primary: #001858;
+            --text-secondary: #8bd3dd;
+            --accent: #f582ae;
+            --grid-color: rgba(0,24,88,0.03);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,10 +54,11 @@
         body {
             width: 100vw;
             height: 100vh;
-            background: #0d0d0d;
+            background: var(--bg-primary);
             overflow: hidden;
             position: relative;
             cursor: crosshair;
+            transition: background 0.5s ease;
         }
 
         body::before {
@@ -31,10 +69,11 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
             background-size: 80px 80px;
             z-index: 0;
+            transition: background 0.5s ease;
         }
 
         body.fullscreen-mode .controls {
@@ -52,16 +91,19 @@
             padding: 12px 24px;
             font-family: 'Jua', sans-serif;
             font-size: 1.4rem;
-            background: #1a1a1a;
+            background: var(--bg-secondary);
             border: 3px solid currentColor;
             white-space: nowrap;
             user-select: none;
             cursor: grab;
-            transition: box-shadow 0.1s ease;
             z-index: 10;
             max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+            /* 글로우 효과 */
+            box-shadow: 0 0 20px currentColor;
+            filter: drop-shadow(0 0 10px currentColor);
         }
 
         .bubble.has-more::after {
@@ -71,7 +113,9 @@
         }
 
         .bubble:hover {
-            box-shadow: 0 0 0 3px currentColor;
+            box-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+            filter: drop-shadow(0 0 20px currentColor);
+            z-index: 50;
         }
 
         .bubble:active {
@@ -95,6 +139,14 @@
         .bubble.font-cute { font-family: 'Hi Melody', cursive; font-size: 1.5rem; }
         .bubble.font-pen { font-family: 'Nanum Pen Script', cursive; font-size: 1.7rem; }
 
+        /* 하이라이트 상태 */
+        .bubble.highlighted {
+            transform: scale(1.8) !important;
+            z-index: 1000 !important;
+            box-shadow: 0 0 50px currentColor, 0 0 100px currentColor;
+            filter: drop-shadow(0 0 30px currentColor);
+        }
+
         .empty {
             position: fixed;
             top: 50%;
@@ -108,13 +160,13 @@
         .empty h2 {
             font-family: 'Black Han Sans', sans-serif;
             font-size: 3rem;
-            color: #222;
+            color: var(--text-secondary);
             margin-bottom: 10px;
         }
 
         .empty p {
             font-family: 'Jua', sans-serif;
-            color: #333;
+            color: var(--text-secondary);
             font-size: 1.2rem;
         }
 
@@ -127,48 +179,60 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 20px 30px;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            transition: opacity 0.3s ease;
+            background: linear-gradient(transparent, var(--bg-primary));
+            transition: opacity 0.3s ease, background 0.5s ease;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .controls a,
         .controls button {
             font-family: 'Jua', sans-serif;
-            font-size: 1rem;
-            color: #666;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
             background: none;
-            border: 2px solid #333;
-            padding: 10px 20px;
+            border: 2px solid var(--text-secondary);
+            padding: 8px 16px;
             text-decoration: none;
             cursor: pointer;
             transition: all 0.15s ease;
+            border-radius: 4px;
         }
 
         .controls a:hover,
         .controls button:hover {
-            color: #fff;
-            border-color: #ff3e3e;
+            color: var(--accent);
+            border-color: var(--accent);
         }
 
-        .controls-left {
+        .controls button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .controls-left,
+        .controls-center,
+        .controls-right {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .counter {
             font-family: 'Black Han Sans', sans-serif;
-            font-size: 1.5rem;
-            color: #333;
+            font-size: 1.3rem;
+            color: var(--text-secondary);
         }
 
         .counter span {
-            color: #ff3e3e;
+            color: var(--accent);
         }
 
         .connection-indicator {
@@ -176,15 +240,15 @@
             align-items: center;
             gap: 6px;
             font-family: 'Jua', sans-serif;
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
         }
 
         .connection-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #666;
+            background: var(--text-secondary);
         }
 
         .connection-dot.connected {
@@ -197,7 +261,7 @@
             top: 30px;
             left: 50%;
             transform: translateX(-50%) scale(0);
-            background: #ff3e3e;
+            background: var(--accent);
             color: #fff;
             padding: 12px 30px;
             font-family: 'Jua', sans-serif;
@@ -235,8 +299,8 @@
         }
 
         .modal-box {
-            background: #1a1a1a;
-            border: 4px solid #ff3e3e;
+            background: var(--bg-secondary);
+            border: 4px solid var(--accent);
             padding: 50px;
             max-width: 900px;
             max-height: 80vh;
@@ -259,19 +323,19 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--text-secondary);
         }
 
         .modal-nickname {
             font-family: 'Jua', sans-serif;
             font-size: 1.1rem;
-            color: #888;
+            color: var(--text-secondary);
         }
 
         .modal-content {
             font-family: 'Jua', sans-serif;
             font-size: 1.8rem;
-            color: #fff;
+            color: var(--text-primary);
             line-height: 2;
             word-break: break-word;
             word-wrap: break-word;
@@ -287,16 +351,12 @@
         }
 
         .modal-content::-webkit-scrollbar-track {
-            background: #333;
+            background: var(--text-secondary);
         }
 
         .modal-content::-webkit-scrollbar-thumb {
-            background: #ff3e3e;
+            background: var(--accent);
             border-radius: 4px;
-        }
-
-        .modal-content::-webkit-scrollbar-thumb:hover {
-            background: #ff6b6b;
         }
 
         .modal-close {
@@ -305,7 +365,7 @@
             right: -20px;
             width: 50px;
             height: 50px;
-            background: #ff3e3e;
+            background: var(--accent);
             border: none;
             color: #fff;
             font-size: 1.5rem;
@@ -318,14 +378,14 @@
 
         .modal-close:hover {
             background: #fff;
-            color: #ff3e3e;
+            color: var(--accent);
             transform: rotate(90deg);
         }
 
         .modal-hint {
             font-family: 'Jua', sans-serif;
             font-size: 0.9rem;
-            color: #555;
+            color: var(--text-secondary);
             margin-top: 20px;
             text-align: right;
         }
@@ -335,12 +395,12 @@
             top: 20px;
             right: 20px;
             background: rgba(0,0,0,0.7);
-            color: #666;
+            color: var(--text-secondary);
             padding: 10px 15px;
             font-family: 'Jua', sans-serif;
             font-size: 0.85rem;
             z-index: 50;
-            border: 1px solid #333;
+            border: 1px solid var(--text-secondary);
             transition: opacity 0.3s ease;
         }
 
@@ -349,15 +409,62 @@
         }
 
         .fullscreen-hint kbd {
-            background: #333;
+            background: var(--text-secondary);
             padding: 2px 8px;
             border-radius: 3px;
-            color: #ff3e3e;
+            color: var(--accent);
+        }
+
+        /* 파티클 컨테이너 */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 150;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particle-fade 1.5s ease-out forwards;
+        }
+
+        @keyframes particle-fade {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) translateY(-100px);
+            }
+        }
+
+        /* 테마 선택 드롭다운 */
+        .theme-select {
+            font-family: 'Jua', sans-serif;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .theme-select:hover {
+            border-color: var(--accent);
         }
     </style>
 </head>
-<body>
+<body data-theme="dark">
     <div class="alert" id="alert">새 메시지!</div>
+    <div class="particles-container" id="particlesContainer"></div>
     
     <div class="fullscreen-hint">
         <kbd>F11</kbd> 전체화면 모드
@@ -383,14 +490,28 @@
     
     <div class="controls">
         <div class="controls-left">
-            <a href="index.html" target="_blank">← 입력하기</a>
+            <a href="index.html" target="_blank">← 입력</a>
             <button id="fullscreenBtn">⛶ 전체화면</button>
             <div class="connection-indicator">
                 <div class="connection-dot" id="connectionDot"></div>
                 <span id="connectionText">연결 중...</span>
             </div>
         </div>
-        <div class="counter"><span id="count">0</span>개</div>
+        <div class="controls-center">
+            <select class="theme-select" id="themeSelect">
+                <option value="dark">🌙 다크</option>
+                <option value="light">☀️ 라이트</option>
+                <option value="neon">💜 네온</option>
+                <option value="pastel">🌸 파스텔</option>
+            </select>
+            <button id="gravityBtn">🌍 중력</button>
+            <button id="mouseReactBtn">🧲 마우스반응</button>
+            <button id="highlightBtn">✨ 하이라이트</button>
+            <button id="soundBtn" class="active">🔔 효과음</button>
+        </div>
+        <div class="controls-right">
+            <div class="counter"><span id="count">0</span>개</div>
+        </div>
     </div>
 
     <script type="module">
@@ -411,6 +532,7 @@
         const database = getDatabase(app);
         const messagesRef = ref(database, 'messages');
 
+        // DOM
         const container = document.getElementById('bubbleContainer');
         const empty = document.getElementById('empty');
         const countEl = document.getElementById('count');
@@ -422,21 +544,41 @@
         const modalClose = document.getElementById('modalClose');
         const connectionDot = document.getElementById('connectionDot');
         const connectionText = document.getElementById('connectionText');
+        const particlesContainer = document.getElementById('particlesContainer');
+        
+        // 컨트롤 버튼들
+        const themeSelect = document.getElementById('themeSelect');
+        const gravityBtn = document.getElementById('gravityBtn');
+        const mouseReactBtn = document.getElementById('mouseReactBtn');
+        const highlightBtn = document.getElementById('highlightBtn');
+        const soundBtn = document.getElementById('soundBtn');
 
         let bubbles = [];
         let bubbleMap = new Map();
         
-        // 부드러운 움직임을 위한 파라미터
-        const FRICTION = 0.985;           // 마찰 (높을수록 오래 미끄러짐)
-        const BOUNCE = 0.5;               // 튕김 (낮을수록 부드러움)
-        const PUSH_FORCE = 0.8;           // 충돌 시 밀어내는 힘
+        // 물리 파라미터
+        const FRICTION = 0.992;
+        const BOUNCE = 0.3;
+        const PUSH_FORCE = 0.4;
         const MAX_DISPLAY_LENGTH = 20;
-        const MIN_SPEED = 0.15;           // 최소 속도 (낮을수록 천천히)
-        const MAX_SPEED = 1.5;            // 최대 속도
-        const WANDER_FORCE = 0.008;       // 랜덤 움직임 (낮을수록 부드러움)
+        const MIN_SPEED = 0.08;
+        const MAX_SPEED = 0.8;
+        const DRIFT_STRENGTH = 0.003;
         
-        let time = 0;                     // 시간 기반 애니메이션용
+        let time = 0;
         let isFirstLoad = true;
+        
+        // 모드 상태
+        let gravityMode = false;
+        let mouseReactMode = false;
+        let highlightMode = false;
+        let soundEnabled = true;
+        let highlightedBubble = null;
+        let highlightTimer = null;
+        
+        // 마우스 위치
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
 
         const fontMap = {
             'normal': "'Jua', sans-serif",
@@ -444,6 +586,56 @@
             'cute': "'Hi Melody', cursive",
             'pen': "'Nanum Pen Script', cursive"
         };
+
+        // 효과음 생성 (Web Audio API)
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound() {
+            if (!soundEnabled) return;
+            
+            // 귀여운 "뿅" 소리
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.15);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.type = 'sine';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // 파티클 생성
+        function createParticles(x, y, color) {
+            const particleCount = 12;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.innerHTML = ['✨', '⭐', '💫', '🌟'][Math.floor(Math.random() * 4)];
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.fontSize = (12 + Math.random() * 16) + 'px';
+                
+                const angle = (i / particleCount) * Math.PI * 2;
+                const distance = 50 + Math.random() * 100;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance - 50;
+                
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+                particle.style.animation = `particle-fade 1s ease-out forwards`;
+                particle.style.transform = `translate(${tx}px, ${ty}px)`;
+                
+                particlesContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
 
         // 연결 상태 확인
         const connectedRef = ref(database, '.info/connected');
@@ -464,12 +656,6 @@
             return { display: text.slice(0, MAX_DISPLAY_LENGTH), truncated: true };
         }
 
-        // 부드러운 노이즈 함수 (Simplex-like)
-        function smoothNoise(x, y, seed) {
-            const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-            return n - Math.floor(n);
-        }
-
         class Bubble {
             constructor(data, firebaseKey) {
                 this.firebaseKey = firebaseKey;
@@ -480,7 +666,6 @@
                 this.font = data.font || 'normal';
                 this.nickname = data.nickname || '익명';
                 
-                // 각 버블마다 고유한 움직임 패턴
                 this.seed = Math.random() * 1000;
                 this.phaseX = Math.random() * Math.PI * 2;
                 this.phaseY = Math.random() * Math.PI * 2;
@@ -516,7 +701,6 @@
                 this.x = this.findSafeX();
                 this.y = this.findSafeY();
                 
-                // 초기 속도를 낮게
                 this.vx = (Math.random() - 0.5) * 1;
                 this.vy = (Math.random() - 0.5) * 1;
                 
@@ -593,53 +777,82 @@
             update(globalTime) {
                 if (this.isDragging) return;
 
-                // 사인파 기반의 부드러운 움직임 (물결처럼)
-                const waveX = Math.sin(globalTime * 0.0008 * this.speedMultiplier + this.phaseX) * WANDER_FORCE;
-                const waveY = Math.cos(globalTime * 0.0006 * this.speedMultiplier + this.phaseY) * WANDER_FORCE;
+                const t = globalTime * 0.001 * this.speedMultiplier;
                 
-                this.vx += waveX;
-                this.vy += waveY;
+                // 기본 표류 움직임
+                let driftX = 
+                    Math.sin(t * 0.3 + this.phaseX) * DRIFT_STRENGTH +
+                    Math.sin(t * 0.7 + this.phaseX * 2) * DRIFT_STRENGTH * 0.5 +
+                    Math.sin(t * 1.1 + this.seed) * DRIFT_STRENGTH * 0.3;
+                    
+                let driftY = 
+                    Math.cos(t * 0.25 + this.phaseY) * DRIFT_STRENGTH +
+                    Math.cos(t * 0.6 + this.phaseY * 2) * DRIFT_STRENGTH * 0.5 +
+                    Math.cos(t * 0.9 + this.seed) * DRIFT_STRENGTH * 0.3;
                 
-                // 속도가 너무 느리면 살짝 가속
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed < MIN_SPEED) {
-                    const angle = globalTime * 0.001 + this.seed;
-                    this.vx += Math.cos(angle) * 0.02;
-                    this.vy += Math.sin(angle) * 0.02;
+                // 중력 모드
+                if (gravityMode) {
+                    driftY += 0.015;
                 }
                 
-                // 최대 속도 제한
-                if (speed > MAX_SPEED) {
-                    this.vx = (this.vx / speed) * MAX_SPEED;
-                    this.vy = (this.vy / speed) * MAX_SPEED;
+                // 마우스 반응 모드
+                if (mouseReactMode) {
+                    const cx = this.x + this.width / 2;
+                    const cy = this.y + this.height / 2;
+                    const dx = mouseX - cx;
+                    const dy = mouseY - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 200 && dist > 0) {
+                        const force = (200 - dist) / 200 * 0.02;
+                        // 피하는 효과 (반대 방향)
+                        driftX -= (dx / dist) * force;
+                        driftY -= (dy / dist) * force;
+                    }
+                }
+                
+                this.vx += driftX;
+                this.vy += driftY;
+                
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed < MIN_SPEED && !gravityMode) {
+                    const gentleAngle = t * 0.5 + this.seed;
+                    this.vx += Math.cos(gentleAngle) * 0.005;
+                    this.vy += Math.sin(gentleAngle) * 0.005;
+                }
+                
+                const currentMaxSpeed = gravityMode ? 3 : MAX_SPEED;
+                if (speed > currentMaxSpeed) {
+                    const slowdown = currentMaxSpeed / speed;
+                    this.vx *= slowdown;
+                    this.vy *= slowdown;
                 }
 
                 this.x += this.vx;
                 this.y += this.vy;
 
-                // 마찰
                 this.vx *= FRICTION;
                 this.vy *= FRICTION;
 
-                // 벽 충돌 (부드럽게)
                 const maxX = window.innerWidth - this.width;
                 const maxY = window.innerHeight - this.height - 80;
+                const softMargin = 5;
 
-                if (this.x <= 0) {
-                    this.x = 0;
+                if (this.x <= softMargin) {
+                    this.x = softMargin;
                     this.vx = Math.abs(this.vx) * BOUNCE;
                 }
-                if (this.x >= maxX) {
-                    this.x = maxX;
+                if (this.x >= maxX - softMargin) {
+                    this.x = maxX - softMargin;
                     this.vx = -Math.abs(this.vx) * BOUNCE;
                 }
-                if (this.y <= 0) {
-                    this.y = 0;
+                if (this.y <= softMargin) {
+                    this.y = softMargin;
                     this.vy = Math.abs(this.vy) * BOUNCE;
                 }
-                if (this.y >= maxY) {
-                    this.y = maxY;
-                    this.vy = -Math.abs(this.vy) * BOUNCE;
+                if (this.y >= maxY - softMargin) {
+                    this.y = maxY - softMargin;
+                    this.vy = -Math.abs(this.vy) * (gravityMode ? 0.6 : BOUNCE);
                 }
 
                 this.updatePosition();
@@ -648,7 +861,7 @@
             collideWith(other) {
                 if (this === other || this.isDragging || other.isDragging) return;
 
-                const padding = 10;
+                const padding = 15;
                 const thisRight = this.x + this.width + padding;
                 const thisBottom = this.y + this.height + padding;
                 const otherRight = other.x + other.width + padding;
@@ -676,18 +889,24 @@
                         otherBottom - this.y
                     );
 
-                    // 부드럽게 분리
-                    const separation = overlap * 0.3;
+                    const separation = overlap * 0.15;
                     this.x += nx * separation;
                     this.y += ny * separation;
                     other.x -= nx * separation;
                     other.y -= ny * separation;
 
-                    // 부드러운 반발력
                     this.vx += nx * PUSH_FORCE;
                     this.vy += ny * PUSH_FORCE;
                     other.vx -= nx * PUSH_FORCE;
                     other.vy -= ny * PUSH_FORCE;
+                }
+            }
+
+            setHighlight(highlighted) {
+                if (highlighted) {
+                    this.el.classList.add('highlighted');
+                } else {
+                    this.el.classList.remove('highlighted');
                 }
             }
 
@@ -721,12 +940,100 @@
             if (e.key === 'Escape') hideModal();
         });
 
+        // 테마 변경
+        themeSelect.addEventListener('change', (e) => {
+            document.body.dataset.theme = e.target.value;
+            localStorage.setItem('theme', e.target.value);
+        });
+        
+        // 저장된 테마 로드
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.dataset.theme = savedTheme;
+        themeSelect.value = savedTheme;
+
+        // 중력 모드 토글
+        gravityBtn.addEventListener('click', () => {
+            gravityMode = !gravityMode;
+            gravityBtn.classList.toggle('active', gravityMode);
+        });
+
+        // 마우스 반응 모드 토글
+        mouseReactBtn.addEventListener('click', () => {
+            mouseReactMode = !mouseReactMode;
+            mouseReactBtn.classList.toggle('active', mouseReactMode);
+        });
+
+        // 마우스 위치 추적
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // 하이라이트 모드 토글
+        highlightBtn.addEventListener('click', () => {
+            highlightMode = !highlightMode;
+            highlightBtn.classList.toggle('active', highlightMode);
+            
+            if (highlightMode) {
+                startHighlightCycle();
+            } else {
+                stopHighlightCycle();
+            }
+        });
+
+        function startHighlightCycle() {
+            if (highlightTimer) clearInterval(highlightTimer);
+            highlightRandomBubble();
+            highlightTimer = setInterval(highlightRandomBubble, 5000);
+        }
+
+        function stopHighlightCycle() {
+            if (highlightTimer) {
+                clearInterval(highlightTimer);
+                highlightTimer = null;
+            }
+            if (highlightedBubble) {
+                highlightedBubble.setHighlight(false);
+                highlightedBubble = null;
+            }
+        }
+
+        function highlightRandomBubble() {
+            if (bubbles.length === 0) return;
+            
+            if (highlightedBubble) {
+                highlightedBubble.setHighlight(false);
+            }
+            
+            const randomIndex = Math.floor(Math.random() * bubbles.length);
+            highlightedBubble = bubbles[randomIndex];
+            highlightedBubble.setHighlight(true);
+            
+            // 하이라이트된 버블을 화면 중앙으로
+            const targetX = (window.innerWidth - highlightedBubble.width) / 2;
+            const targetY = (window.innerHeight - highlightedBubble.height) / 2 - 50;
+            
+            highlightedBubble.vx = (targetX - highlightedBubble.x) * 0.05;
+            highlightedBubble.vy = (targetY - highlightedBubble.y) * 0.05;
+        }
+
+        // 효과음 토글
+        soundBtn.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundBtn.classList.toggle('active', soundEnabled);
+            
+            // AudioContext 시작 (사용자 인터랙션 후)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        });
+
         // 전체화면
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
                 document.body.classList.add('fullscreen-mode');
-                fullscreenBtn.textContent = '⛶ 전체화면 해제';
+                fullscreenBtn.textContent = '⛶ 해제';
             } else {
                 document.exitFullscreen();
                 document.body.classList.remove('fullscreen-mode');
@@ -762,7 +1069,6 @@
                 const dragDist = Math.abs(e.clientX - dragStartX) + Math.abs(e.clientY - dragStartY);
                 if (dragDist > 5) activeBubble.wasDragged = true;
                 
-                // 부드러운 드래그 속도
                 activeBubble.vx = (newX - activeBubble.x) * 0.3;
                 activeBubble.vy = (newY - activeBubble.y) * 0.3;
                 
@@ -830,6 +1136,16 @@
                 if (!isFirstLoad) {
                     alertEl.classList.add('show');
                     setTimeout(() => alertEl.classList.remove('show'), 1500);
+                    
+                    // 효과음 재생
+                    playSound();
+                    
+                    // 파티클 효과
+                    createParticles(
+                        bubble.x + bubble.width / 2,
+                        bubble.y + bubble.height / 2,
+                        bubble.color
+                    );
                 }
             }
         });
