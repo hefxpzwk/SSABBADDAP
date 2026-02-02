@@ -439,6 +439,72 @@
             }
         }
 
+        /* 폭탄 모드 커서 */
+        body.bomb-mode {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E💣%3C/text%3E%3C/svg%3E") 16 16, crosshair;
+        }
+
+        /* 폭발 효과 */
+        .explosion {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            z-index: 200;
+        }
+
+        .explosion-ring {
+            position: absolute;
+            border: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: explosion-ring 0.6s ease-out forwards;
+        }
+
+        @keyframes explosion-ring {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+            100% {
+                width: 400px;
+                height: 400px;
+                opacity: 0;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .explosion-center {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: explosion-center 0.4s ease-out forwards;
+        }
+
+        @keyframes explosion-center {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
         /* 테마 선택 드롭다운 */
         .theme-select {
             font-family: 'Jua', sans-serif;
@@ -500,7 +566,7 @@
                 <option value="pastel">🌸 파스텔</option>
             </select>
             <button id="gravityBtn">🌍 중력</button>
-            <button id="mouseReactBtn">🧲 마우스반응</button>
+            <button id="bombBtn">💣 폭탄</button>
             <button id="highlightBtn">✨ 하이라이트</button>
             <button id="soundBtn" class="active">🔔 효과음</button>
         </div>
@@ -544,7 +610,7 @@
         // 컨트롤 버튼들
         const themeSelect = document.getElementById('themeSelect');
         const gravityBtn = document.getElementById('gravityBtn');
-        const mouseReactBtn = document.getElementById('mouseReactBtn');
+        const bombBtn = document.getElementById('bombBtn');
         const highlightBtn = document.getElementById('highlightBtn');
         const soundBtn = document.getElementById('soundBtn');
 
@@ -565,15 +631,11 @@
         
         // 모드 상태
         let gravityMode = false;
-        let mouseReactMode = false;
+        let bombMode = false;
         let highlightMode = false;
         let soundEnabled = true;
         let highlightedBubble = null;
         let highlightTimer = null;
-        
-        // 마우스 위치
-        let mouseX = window.innerWidth / 2;
-        let mouseY = window.innerHeight / 2;
 
         const fontMap = {
             'normal': "'Jua', sans-serif",
@@ -604,6 +666,111 @@
             oscillator.type = 'sine';
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        function playExplosionSound() {
+            if (!soundEnabled) return;
+            
+            // 폭발음 (노이즈 + 저음)
+            const bufferSize = audioContext.sampleRate * 0.3;
+            const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+            }
+            
+            const noise = audioContext.createBufferSource();
+            noise.buffer = buffer;
+            
+            const noiseGain = audioContext.createGain();
+            noiseGain.gain.setValueAtTime(0.5, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            noise.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+            
+            // 저음 붐
+            const osc = audioContext.createOscillator();
+            const oscGain = audioContext.createGain();
+            osc.frequency.setValueAtTime(150, audioContext.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.2);
+            oscGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+            oscGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            osc.connect(oscGain);
+            oscGain.connect(audioContext.destination);
+            
+            noise.start(audioContext.currentTime);
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.3);
+        }
+
+        // 폭발 효과
+        function createExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            
+            // 여러 개의 링
+            for (let i = 0; i < 3; i++) {
+                const ring = document.createElement('div');
+                ring.className = 'explosion-ring';
+                ring.style.animationDelay = (i * 0.1) + 's';
+                explosion.appendChild(ring);
+            }
+            
+            const center = document.createElement('div');
+            center.className = 'explosion-center';
+            explosion.appendChild(center);
+            
+            document.body.appendChild(explosion);
+            
+            // 폭발음
+            playExplosionSound();
+            
+            // 주변 말풍선들에 힘 적용
+            const explosionRadius = 300;
+            const explosionForce = 15;
+            
+            bubbles.forEach(bubble => {
+                const bx = bubble.x + bubble.width / 2;
+                const by = bubble.y + bubble.height / 2;
+                const dx = bx - x;
+                const dy = by - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < explosionRadius && dist > 0) {
+                    const force = (1 - dist / explosionRadius) * explosionForce;
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    
+                    bubble.vx += nx * force;
+                    bubble.vy += ny * force;
+                }
+            });
+            
+            // 파티클도 추가
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.innerHTML = ['💥', '✨', '🔥', '⭐'][Math.floor(Math.random() * 4)];
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.fontSize = (16 + Math.random() * 20) + 'px';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 150;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.transform = `translate(${tx}px, ${ty}px)`;
+                particlesContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+            
+            setTimeout(() => explosion.remove(), 600);
         }
 
         // 파티클 생성
@@ -785,25 +952,9 @@
                     Math.cos(t * 0.6 + this.phaseY * 2) * DRIFT_STRENGTH * 0.5 +
                     Math.cos(t * 0.9 + this.seed) * DRIFT_STRENGTH * 0.3;
                 
-                // 중력 모드
+                // 중력 모드 (강하게!)
                 if (gravityMode) {
-                    driftY += 0.015;
-                }
-                
-                // 마우스 반응 모드
-                if (mouseReactMode) {
-                    const cx = this.x + this.width / 2;
-                    const cy = this.y + this.height / 2;
-                    const dx = mouseX - cx;
-                    const dy = mouseY - cy;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < 200 && dist > 0) {
-                        const force = (200 - dist) / 200 * 0.02;
-                        // 피하는 효과 (반대 방향)
-                        driftX -= (dx / dist) * force;
-                        driftY -= (dy / dist) * force;
-                    }
+                    driftY += 0.05;
                 }
                 
                 this.vx += driftX;
@@ -816,7 +967,7 @@
                     this.vy += Math.sin(gentleAngle) * 0.005;
                 }
                 
-                const currentMaxSpeed = gravityMode ? 3 : MAX_SPEED;
+                const currentMaxSpeed = gravityMode ? 8 : MAX_SPEED;
                 if (speed > currentMaxSpeed) {
                     const slowdown = currentMaxSpeed / speed;
                     this.vx *= slowdown;
@@ -847,7 +998,11 @@
                 }
                 if (this.y >= maxY - softMargin) {
                     this.y = maxY - softMargin;
-                    this.vy = -Math.abs(this.vy) * (gravityMode ? 0.6 : BOUNCE);
+                    this.vy = -Math.abs(this.vy) * (gravityMode ? 0.7 : BOUNCE);
+                    // 중력 모드에서 바닥에서 약간 좌우로 흩어짐
+                    if (gravityMode) {
+                        this.vx += (Math.random() - 0.5) * 2;
+                    }
                 }
 
                 this.updatePosition();
@@ -952,16 +1107,23 @@
             gravityBtn.classList.toggle('active', gravityMode);
         });
 
-        // 마우스 반응 모드 토글
-        mouseReactBtn.addEventListener('click', () => {
-            mouseReactMode = !mouseReactMode;
-            mouseReactBtn.classList.toggle('active', mouseReactMode);
+        // 폭탄 모드 토글
+        bombBtn.addEventListener('click', () => {
+            bombMode = !bombMode;
+            bombBtn.classList.toggle('active', bombMode);
+            document.body.classList.toggle('bomb-mode', bombMode);
         });
 
-        // 마우스 위치 추적
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
+        // 폭탄 클릭 이벤트
+        document.addEventListener('click', (e) => {
+            if (!bombMode) return;
+            
+            // 컨트롤 영역이나 버블 클릭은 무시
+            if (e.target.closest('.controls') || 
+                e.target.closest('.bubble') || 
+                e.target.closest('.modal-overlay')) return;
+            
+            createExplosion(e.clientX, e.clientY);
         });
 
         // 하이라이트 모드 토글
