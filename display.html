@@ -730,9 +730,9 @@
             // 폭발음
             playExplosionSound();
             
-            // 주변 말풍선들에 힘 적용
-            const explosionRadius = 300;
-            const explosionForce = 15;
+            // 주변 말풍선들에 힘 적용 (엄청 강하게!)
+            const explosionRadius = 500;
+            const explosionForce = 50;
             
             bubbles.forEach(bubble => {
                 const bx = bubble.x + bubble.width / 2;
@@ -1296,13 +1296,6 @@
                     
                     // 효과음 재생
                     playSound();
-                    
-                    // 파티클 효과
-                    createParticles(
-                        bubble.x + bubble.width / 2,
-                        bubble.y + bubble.height / 2,
-                        bubble.color
-                    );
                 }
             }
         });
