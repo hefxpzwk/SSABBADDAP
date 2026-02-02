@@ -444,6 +444,11 @@
             cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E💣%3C/text%3E%3C/svg%3E") 16 16, crosshair;
         }
 
+        /* 블랙홀 모드 커서 */
+        body.blackhole-mode {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext y='24' font-size='24'%3E🕳️%3C/text%3E%3C/svg%3E") 16 16, crosshair;
+        }
+
         /* 폭발 효과 */
         .explosion {
             position: fixed;
@@ -503,6 +508,73 @@
                 transform: translate(-50%, -50%) scale(3);
                 opacity: 0;
             }
+        }
+
+        /* 블랙홀 효과 */
+        .blackhole {
+            position: fixed;
+            pointer-events: none;
+            z-index: 200;
+        }
+
+        .blackhole-core {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #000 0%, #000 40%, transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px 10px rgba(128, 0, 255, 0.5), 
+                        0 0 60px 20px rgba(128, 0, 255, 0.3),
+                        inset 0 0 30px rgba(128, 0, 255, 0.5);
+            animation: blackhole-pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        .blackhole-ring {
+            position: absolute;
+            border: 3px solid rgba(128, 0, 255, 0.6);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            animation: blackhole-spin 2s linear infinite;
+        }
+
+        .blackhole-ring:nth-child(1) {
+            width: 100px;
+            height: 100px;
+            transform: translate(-50%, -50%) rotateX(70deg);
+        }
+
+        .blackhole-ring:nth-child(2) {
+            width: 140px;
+            height: 140px;
+            transform: translate(-50%, -50%) rotateX(70deg) rotateZ(60deg);
+            animation-duration: 3s;
+            animation-direction: reverse;
+        }
+
+        .blackhole-ring:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            transform: translate(-50%, -50%) rotateX(70deg) rotateZ(120deg);
+            animation-duration: 4s;
+        }
+
+        @keyframes blackhole-pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            100% { transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        @keyframes blackhole-spin {
+            0% { transform: translate(-50%, -50%) rotateX(70deg) rotateZ(0deg); }
+            100% { transform: translate(-50%, -50%) rotateX(70deg) rotateZ(360deg); }
+        }
+
+        @keyframes blackhole-shrink {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
         }
 
         /* 테마 선택 드롭다운 */
@@ -567,6 +639,7 @@
             </select>
             <button id="gravityBtn">🌍 중력</button>
             <button id="bombBtn">💣 폭탄</button>
+            <button id="blackholeBtn">🕳️ 블랙홀</button>
             <button id="highlightBtn">✨ 하이라이트</button>
             <button id="soundBtn" class="active">🔔 효과음</button>
         </div>
@@ -611,6 +684,7 @@
         const themeSelect = document.getElementById('themeSelect');
         const gravityBtn = document.getElementById('gravityBtn');
         const bombBtn = document.getElementById('bombBtn');
+        const blackholeBtn = document.getElementById('blackholeBtn');
         const highlightBtn = document.getElementById('highlightBtn');
         const soundBtn = document.getElementById('soundBtn');
 
@@ -632,10 +706,14 @@
         // 모드 상태
         let gravityMode = false;
         let bombMode = false;
+        let blackholeMode = false;
         let highlightMode = false;
         let soundEnabled = true;
         let highlightedBubble = null;
         let highlightTimer = null;
+        
+        // 활성 블랙홀들
+        let activeBlackholes = [];
 
         const fontMap = {
             'normal': "'Jua', sans-serif",
@@ -730,9 +808,9 @@
             // 폭발음
             playExplosionSound();
             
-            // 주변 말풍선들에 힘 적용 (엄청 강하게!)
-            const explosionRadius = 500;
-            const explosionForce = 50;
+            // 주변 말풍선들에 힘 적용 (미친듯이 강하게!!!)
+            const explosionRadius = 800;
+            const explosionForce = 150;
             
             bubbles.forEach(bubble => {
                 const bx = bubble.x + bubble.width / 2;
@@ -771,6 +849,73 @@
             }
             
             setTimeout(() => explosion.remove(), 600);
+        }
+
+        function playBlackholeSound() {
+            if (!soundEnabled) return;
+            
+            // 블랙홀 소리 (저음 웅웅)
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            osc.frequency.setValueAtTime(60, audioContext.currentTime);
+            osc.frequency.linearRampToValueAtTime(30, audioContext.currentTime + 3);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 3);
+            
+            osc.type = 'sine';
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 3);
+        }
+
+        // 블랙홀 생성
+        function createBlackhole(x, y) {
+            const blackhole = document.createElement('div');
+            blackhole.className = 'blackhole';
+            blackhole.style.left = x + 'px';
+            blackhole.style.top = y + 'px';
+            
+            // 링들
+            for (let i = 0; i < 3; i++) {
+                const ring = document.createElement('div');
+                ring.className = 'blackhole-ring';
+                blackhole.appendChild(ring);
+            }
+            
+            // 코어
+            const core = document.createElement('div');
+            core.className = 'blackhole-core';
+            blackhole.appendChild(core);
+            
+            document.body.appendChild(blackhole);
+            
+            playBlackholeSound();
+            
+            // 블랙홀 데이터
+            const blackholeData = {
+                x: x,
+                y: y,
+                element: blackhole,
+                strength: 80,
+                radius: 600,
+                createdAt: Date.now()
+            };
+            
+            activeBlackholes.push(blackholeData);
+            
+            // 3초 후 블랙홀 사라짐
+            setTimeout(() => {
+                blackhole.style.animation = 'blackhole-shrink 0.5s ease-in forwards';
+                setTimeout(() => {
+                    blackhole.remove();
+                    const index = activeBlackholes.indexOf(blackholeData);
+                    if (index > -1) activeBlackholes.splice(index, 1);
+                }, 500);
+            }, 3000);
         }
 
         // 파티클 생성
@@ -957,6 +1102,24 @@
                     driftY += 0.05;
                 }
                 
+                // 블랙홀 힘 적용
+                for (const bh of activeBlackholes) {
+                    const cx = this.x + this.width / 2;
+                    const cy = this.y + this.height / 2;
+                    const dx = bh.x - cx;
+                    const dy = bh.y - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < bh.radius && dist > 30) {
+                        const force = (1 - dist / bh.radius) * bh.strength * 0.01;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        
+                        driftX += nx * force;
+                        driftY += ny * force;
+                    }
+                }
+                
                 this.vx += driftX;
                 this.vy += driftY;
                 
@@ -1110,20 +1273,35 @@
         // 폭탄 모드 토글
         bombBtn.addEventListener('click', () => {
             bombMode = !bombMode;
+            blackholeMode = false;
             bombBtn.classList.toggle('active', bombMode);
+            blackholeBtn.classList.remove('active');
             document.body.classList.toggle('bomb-mode', bombMode);
+            document.body.classList.remove('blackhole-mode');
         });
 
-        // 폭탄 클릭 이벤트
+        // 블랙홀 모드 토글
+        blackholeBtn.addEventListener('click', () => {
+            blackholeMode = !blackholeMode;
+            bombMode = false;
+            blackholeBtn.classList.toggle('active', blackholeMode);
+            bombBtn.classList.remove('active');
+            document.body.classList.toggle('blackhole-mode', blackholeMode);
+            document.body.classList.remove('bomb-mode');
+        });
+
+        // 폭탄/블랙홀 클릭 이벤트
         document.addEventListener('click', (e) => {
-            if (!bombMode) return;
-            
             // 컨트롤 영역이나 버블 클릭은 무시
             if (e.target.closest('.controls') || 
                 e.target.closest('.bubble') || 
                 e.target.closest('.modal-overlay')) return;
             
-            createExplosion(e.clientX, e.clientY);
+            if (bombMode) {
+                createExplosion(e.clientX, e.clientY);
+            } else if (blackholeMode) {
+                createBlackhole(e.clientX, e.clientY);
+            }
         });
 
         // 하이라이트 모드 토글
