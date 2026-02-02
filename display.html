@@ -692,8 +692,8 @@
         let bubbleMap = new Map();
         
         // 물리 파라미터
-        const FRICTION = 0.992;
-        const BOUNCE = 0.3;
+        const FRICTION = 0.985;
+        const BOUNCE = 0.85;              // 벽 튕김 강하게!
         const PUSH_FORCE = 0.4;
         const MAX_DISPLAY_LENGTH = 20;
         const MIN_SPEED = 0.08;
@@ -809,8 +809,8 @@
             playExplosionSound();
             
             // 주변 말풍선들에 힘 적용 (미친듯이 강하게!!!)
-            const explosionRadius = 800;
-            const explosionForce = 150;
+            const explosionRadius = 1200;
+            const explosionForce = 300;
             
             bubbles.forEach(bubble => {
                 const bx = bubble.x + bubble.width / 2;
@@ -895,13 +895,13 @@
             
             playBlackholeSound();
             
-            // 블랙홀 데이터
+            // 블랙홀 데이터 (엄청 강하게!)
             const blackholeData = {
                 x: x,
                 y: y,
                 element: blackhole,
-                strength: 80,
-                radius: 600,
+                strength: 200,
+                radius: 1000,
                 createdAt: Date.now()
             };
             
@@ -1097,9 +1097,9 @@
                     Math.cos(t * 0.6 + this.phaseY * 2) * DRIFT_STRENGTH * 0.5 +
                     Math.cos(t * 0.9 + this.seed) * DRIFT_STRENGTH * 0.3;
                 
-                // 중력 모드 (강하게!)
+                // 중력 모드 (엄청 강하게!)
                 if (gravityMode) {
-                    driftY += 0.05;
+                    driftY += 0.15;
                 }
                 
                 // 블랙홀 힘 적용
@@ -1130,7 +1130,7 @@
                     this.vy += Math.sin(gentleAngle) * 0.005;
                 }
                 
-                const currentMaxSpeed = gravityMode ? 8 : MAX_SPEED;
+                const currentMaxSpeed = gravityMode ? 20 : MAX_SPEED;
                 if (speed > currentMaxSpeed) {
                     const slowdown = currentMaxSpeed / speed;
                     this.vx *= slowdown;
@@ -1161,10 +1161,10 @@
                 }
                 if (this.y >= maxY - softMargin) {
                     this.y = maxY - softMargin;
-                    this.vy = -Math.abs(this.vy) * (gravityMode ? 0.7 : BOUNCE);
-                    // 중력 모드에서 바닥에서 약간 좌우로 흩어짐
+                    this.vy = -Math.abs(this.vy) * (gravityMode ? 0.85 : BOUNCE);
+                    // 중력 모드에서 바닥에서 좌우로 흩어짐
                     if (gravityMode) {
-                        this.vx += (Math.random() - 0.5) * 2;
+                        this.vx += (Math.random() - 0.5) * 5;
                     }
                 }
 
