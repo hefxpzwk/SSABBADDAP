@@ -1130,7 +1130,8 @@
                     this.vy += Math.sin(gentleAngle) * 0.005;
                 }
                 
-                const currentMaxSpeed = gravityMode ? 20 : MAX_SPEED;
+                // 폭탄/블랙홀 효과를 위해 최대 속도는 항상 높게 유지
+                const currentMaxSpeed = 20;
                 if (speed > currentMaxSpeed) {
                     const slowdown = currentMaxSpeed / speed;
                     this.vx *= slowdown;
