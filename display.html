@@ -709,6 +709,204 @@
             gap: 4px;
             flex-wrap: wrap;
         }
+
+        /* 핵폭탄 버튼 특별 스타일 */
+        #nukeBtn {
+            background: linear-gradient(180deg, #ff4400 0%, #ff0000 50%, #880000 100%);
+            color: #fff;
+            border-color: #ff6600;
+            text-shadow: 0 0 10px #ff0000;
+            animation: nuke-btn-glow 1.5s ease-in-out infinite alternate;
+        }
+
+        #nukeBtn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 68, 0, 0.8);
+        }
+
+        @keyframes nuke-btn-glow {
+            0% { box-shadow: 0 0 5px #ff4400, 0 0 10px #ff4400; }
+            100% { box-shadow: 0 0 20px #ff4400, 0 0 40px #ff0000; }
+        }
+
+        /* 핵폭탄 효과 */
+        .nuke-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            z-index: 10000;
+            pointer-events: none;
+            animation: nuke-flash-anim 1s ease-out forwards;
+        }
+
+        @keyframes nuke-flash-anim {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .nuke-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .nuke-mushroom {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+        }
+
+        .nuke-stem {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 0;
+            background: linear-gradient(180deg, 
+                #ff6600 0%, 
+                #ff4400 30%, 
+                #ff2200 60%, 
+                #aa0000 100%);
+            animation: nuke-stem-grow 2s ease-out forwards;
+            border-radius: 20px 20px 50px 50px;
+        }
+
+        @keyframes nuke-stem-grow {
+            0% { height: 0; width: 60px; opacity: 1; }
+            50% { height: 50vh; width: 120px; opacity: 1; }
+            100% { height: 60vh; width: 80px; opacity: 0.8; }
+        }
+
+        .nuke-cap {
+            position: absolute;
+            bottom: 45vh;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            width: 400px;
+            height: 250px;
+            background: radial-gradient(ellipse at center bottom,
+                #ffaa00 0%,
+                #ff6600 30%,
+                #ff3300 50%,
+                #cc0000 70%,
+                #660000 100%);
+            border-radius: 50% 50% 30% 30%;
+            animation: nuke-cap-grow 2s ease-out 0.3s forwards;
+            box-shadow: 
+                0 0 100px rgba(255, 100, 0, 0.8),
+                0 0 200px rgba(255, 50, 0, 0.5),
+                inset 0 -50px 100px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes nuke-cap-grow {
+            0% { transform: translateX(-50%) scale(0); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+            100% { transform: translateX(-50%) scale(1.5) translateY(-50px); opacity: 0; }
+        }
+
+        .nuke-ring {
+            position: absolute;
+            bottom: 40vh;
+            left: 50%;
+            transform: translateX(-50%) scale(0);
+            width: 300px;
+            height: 80px;
+            border: 8px solid rgba(255, 150, 0, 0.8);
+            border-radius: 50%;
+            animation: nuke-ring-expand 1.5s ease-out 0.5s forwards;
+        }
+
+        @keyframes nuke-ring-expand {
+            0% { transform: translateX(-50%) scale(0); opacity: 1; }
+            100% { transform: translateX(-50%) scale(5); opacity: 0; }
+        }
+
+        .nuke-shockwave {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: nuke-shockwave-expand 1s ease-out forwards;
+        }
+
+        @keyframes nuke-shockwave-expand {
+            0% { transform: translateX(-50%) scale(1); opacity: 1; }
+            100% { transform: translateX(-50%) scale(100); opacity: 0; }
+        }
+
+        .nuke-debris {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(45deg, #ff4400, #ffaa00);
+            border-radius: 50%;
+            animation: nuke-debris-fly 2s ease-out forwards;
+        }
+
+        @keyframes nuke-debris-fly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        /* 핵폭탄 후 화면 흔들림 */
+        @keyframes nuke-shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-20px, -15px) rotate(-2deg); }
+            20% { transform: translate(20px, 15px) rotate(2deg); }
+            30% { transform: translate(-15px, 20px) rotate(-1deg); }
+            40% { transform: translate(15px, -20px) rotate(1deg); }
+            50% { transform: translate(-10px, 10px) rotate(-0.5deg); }
+            60% { transform: translate(10px, -10px) rotate(0.5deg); }
+            70% { transform: translate(-5px, 15px) rotate(-0.2deg); }
+            80% { transform: translate(5px, -15px) rotate(0.2deg); }
+            90% { transform: translate(-2px, 5px) rotate(0deg); }
+        }
+
+        body.nuke-shaking {
+            animation: nuke-shake 2s ease-in-out;
+        }
+
+        body.nuke-shaking #bubbleContainer {
+            animation: nuke-shake 2s ease-in-out;
+        }
+
+        /* 핵폭탄 후 색상 변화 */
+        .nuke-tint {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center bottom, 
+                rgba(255, 100, 0, 0.3) 0%, 
+                rgba(255, 50, 0, 0.1) 50%,
+                transparent 100%);
+            z-index: 400;
+            pointer-events: none;
+            animation: nuke-tint-fade 4s ease-out forwards;
+        }
+
+        @keyframes nuke-tint-fade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -766,6 +964,7 @@
                 <button id="earthquakeBtn">💥 지진</button>
                 <button id="shuffleBtn">🔀 셔플</button>
                 <button id="partyBtn">🎉 파티</button>
+                <button id="nukeBtn">☢️ 핵폭탄</button>
             </div>
             <div class="btn-group">
                 <button id="highlightBtn">✨ 하이라이트</button>
@@ -820,6 +1019,7 @@
         const earthquakeBtn = document.getElementById('earthquakeBtn');
         const shuffleBtn = document.getElementById('shuffleBtn');
         const partyBtn = document.getElementById('partyBtn');
+        const nukeBtn = document.getElementById('nukeBtn');
         const highlightBtn = document.getElementById('highlightBtn');
         const soundBtn = document.getElementById('soundBtn');
         const freezeOverlay = document.getElementById('freezeOverlay');
@@ -1301,6 +1501,207 @@
             partyMove();
         }
 
+        // ☢️ 핵폭탄 - 레전드급 기능! ☢️
+        let nukeReady = true;
+        
+        function playNukeSound() {
+            if (!soundEnabled) return;
+            
+            // 1단계: 저음 웅웅 (카운트다운 느낌)
+            const rumble = audioContext.createOscillator();
+            const rumbleGain = audioContext.createGain();
+            rumble.connect(rumbleGain);
+            rumbleGain.connect(audioContext.destination);
+            rumble.frequency.setValueAtTime(30, audioContext.currentTime);
+            rumble.frequency.linearRampToValueAtTime(80, audioContext.currentTime + 0.5);
+            rumbleGain.gain.setValueAtTime(0.5, audioContext.currentTime);
+            rumbleGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+            rumble.type = 'sine';
+            rumble.start(audioContext.currentTime);
+            rumble.stop(audioContext.currentTime + 0.5);
+            
+            // 2단계: 폭발음 (0.5초 후)
+            setTimeout(() => {
+                // 거대한 노이즈
+                const bufferSize = audioContext.sampleRate * 3;
+                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    const decay = Math.exp(-i / (bufferSize * 0.2));
+                    data[i] = (Math.random() * 2 - 1) * decay;
+                }
+                const noise = audioContext.createBufferSource();
+                noise.buffer = buffer;
+                
+                // 저역 필터로 폭발 느낌
+                const filter = audioContext.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(500, audioContext.currentTime);
+                filter.frequency.linearRampToValueAtTime(100, audioContext.currentTime + 2);
+                
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.setValueAtTime(1, audioContext.currentTime);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 3);
+                
+                noise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(audioContext.destination);
+                noise.start(audioContext.currentTime);
+                
+                // 저음 붐붐붐
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        const boom = audioContext.createOscillator();
+                        const boomGain = audioContext.createGain();
+                        boom.connect(boomGain);
+                        boomGain.connect(audioContext.destination);
+                        boom.frequency.setValueAtTime(80 - i * 10, audioContext.currentTime);
+                        boom.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + 0.5);
+                        boomGain.gain.setValueAtTime(0.6 - i * 0.1, audioContext.currentTime);
+                        boomGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                        boom.type = 'sine';
+                        boom.start(audioContext.currentTime);
+                        boom.stop(audioContext.currentTime + 0.5);
+                    }, i * 200);
+                }
+            }, 500);
+        }
+
+        function triggerNuke() {
+            if (!nukeReady || bubbles.length === 0) return;
+            nukeReady = false;
+            nukeBtn.disabled = true;
+            nukeBtn.style.opacity = '0.5';
+            
+            // 원래 위치 저장
+            const originalPositions = bubbles.map(b => ({ x: b.x, y: b.y }));
+            
+            // 효과음 시작
+            playNukeSound();
+            
+            // 1단계: 섬광 (0.5초 후)
+            setTimeout(() => {
+                const flash = document.createElement('div');
+                flash.className = 'nuke-flash';
+                document.body.appendChild(flash);
+                setTimeout(() => flash.remove(), 1000);
+            }, 500);
+            
+            // 2단계: 버섯구름 & 충격파 (0.6초 후)
+            setTimeout(() => {
+                const nukeContainer = document.createElement('div');
+                nukeContainer.className = 'nuke-container';
+                
+                // 충격파
+                const shockwave = document.createElement('div');
+                shockwave.className = 'nuke-shockwave';
+                nukeContainer.appendChild(shockwave);
+                
+                // 버섯구름 줄기
+                const stem = document.createElement('div');
+                stem.className = 'nuke-stem';
+                nukeContainer.appendChild(stem);
+                
+                // 버섯구름 모자
+                const cap = document.createElement('div');
+                cap.className = 'nuke-cap';
+                nukeContainer.appendChild(cap);
+                
+                // 링
+                for (let i = 0; i < 3; i++) {
+                    const ring = document.createElement('div');
+                    ring.className = 'nuke-ring';
+                    ring.style.animationDelay = (i * 0.2) + 's';
+                    nukeContainer.appendChild(ring);
+                }
+                
+                // 파편
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight;
+                for (let i = 0; i < 50; i++) {
+                    const debris = document.createElement('div');
+                    debris.className = 'nuke-debris';
+                    debris.style.left = centerX + 'px';
+                    debris.style.bottom = '0px';
+                    const angle = Math.random() * Math.PI;
+                    const distance = 200 + Math.random() * 500;
+                    debris.style.setProperty('--tx', (Math.cos(angle) * distance) + 'px');
+                    debris.style.setProperty('--ty', (-Math.sin(angle) * distance - 200) + 'px');
+                    debris.style.animationDelay = (Math.random() * 0.3) + 's';
+                    debris.style.width = (5 + Math.random() * 15) + 'px';
+                    debris.style.height = debris.style.width;
+                    nukeContainer.appendChild(debris);
+                }
+                
+                document.body.appendChild(nukeContainer);
+                
+                // 화면 색조
+                const tint = document.createElement('div');
+                tint.className = 'nuke-tint';
+                document.body.appendChild(tint);
+                
+                setTimeout(() => {
+                    nukeContainer.remove();
+                    tint.remove();
+                }, 4000);
+            }, 600);
+            
+            // 3단계: 화면 흔들림 (0.6초 후)
+            setTimeout(() => {
+                document.body.classList.add('nuke-shaking');
+                setTimeout(() => document.body.classList.remove('nuke-shaking'), 2000);
+            }, 600);
+            
+            // 4단계: 말풍선들 폭발!!! (0.6초 후)
+            setTimeout(() => {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight;
+                
+                bubbles.forEach(bubble => {
+                    const dx = bubble.x + bubble.width / 2 - centerX;
+                    const dy = bubble.y + bubble.height / 2 - centerY;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    
+                    // 모든 방향으로 미친듯이 날려버림
+                    const force = 500;
+                    bubble.vx = (dx / dist) * force * (0.5 + Math.random());
+                    bubble.vy = (dy / dist) * force * (0.5 + Math.random()) - 200; // 위로 더 날아감
+                });
+            }, 600);
+            
+            // 5단계: 말풍선들 원위치로 복귀 (4초 후)
+            setTimeout(() => {
+                bubbles.forEach((bubble, i) => {
+                    if (originalPositions[i]) {
+                        // 부드럽게 원위치로
+                        const returnInterval = setInterval(() => {
+                            const dx = originalPositions[i].x - bubble.x;
+                            const dy = originalPositions[i].y - bubble.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist < 5) {
+                                clearInterval(returnInterval);
+                                bubble.x = originalPositions[i].x;
+                                bubble.y = originalPositions[i].y;
+                                bubble.vx = 0;
+                                bubble.vy = 0;
+                            } else {
+                                bubble.vx = dx * 0.05;
+                                bubble.vy = dy * 0.05;
+                            }
+                        }, 50);
+                    }
+                });
+            }, 4000);
+            
+            // 6단계: 쿨다운 해제 (10초 후)
+            setTimeout(() => {
+                nukeReady = true;
+                nukeBtn.disabled = false;
+                nukeBtn.style.opacity = '1';
+            }, 10000);
+        }
+
         // 파티클 생성
         function createParticles(x, y, color) {
             const particleCount = 12;
@@ -1771,6 +2172,9 @@
 
         // 파티 버튼
         partyBtn.addEventListener('click', triggerParty);
+
+        // ☢️ 핵폭탄 버튼
+        nukeBtn.addEventListener('click', triggerNuke);
 
         // 클릭 모드별 이벤트
         document.addEventListener('click', (e) => {
